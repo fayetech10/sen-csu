@@ -26,23 +26,29 @@ fun AddPersonneChargeModal(
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Ajouter une personne à charge")
             Spacer(modifier = Modifier.height(16.dp))
-            TextField(
-                value = personne.prenoms,
-                onValueChange = { onPersonneChange(personne.copy(prenoms = it)) },
-                label = { Text("Prénoms") }
-            )
+            personne.prenoms?.let {
+                TextField(
+                    value = it,
+                    onValueChange = { onPersonneChange(personne.copy(prenoms = it)) },
+                    label = { Text("Prénoms") }
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            TextField(
-                value = personne.nom,
-                onValueChange = { onPersonneChange(personne.copy(nom = it)) },
-                label = { Text("Nom") }
-            )
+            personne.nom?.let {
+                TextField(
+                    value = it,
+                    onValueChange = { onPersonneChange(personne.copy(nom = it)) },
+                    label = { Text("Nom") }
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            TextField(
-                value = personne.dateNaissance,
-                onValueChange = { onPersonneChange(personne.copy(dateNaissance = it)) },
-                label = { Text("Date de naissance") }
-            )
+            personne.dateNaissance?.let {
+                TextField(
+                    value = it,
+                    onValueChange = { onPersonneChange(personne.copy(dateNaissance = it)) },
+                    label = { Text("Date de naissance") }
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onSave) {
                 Text("Enregistrer")

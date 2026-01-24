@@ -58,6 +58,6 @@ class FileRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e("FileRepository", "Erreur inattendue lors de l'upload", e)
             Result.failure(e)
-        }
+        } as Result<String>
     }
 }

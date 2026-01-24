@@ -8,41 +8,37 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.* 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import com.example.sencsu.R
-import com.example.sencsu.components.ImageViewerDialog
 import com.example.sencsu.components.ServerImage
 import com.example.sencsu.components.modals.AddPersonneChargeModal
-import com.example.sencsu.configs.ApiConfig
 import com.example.sencsu.data.remote.dto.AdherentDto
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
 import com.example.sencsu.data.repository.SessionManager
 import com.example.sencsu.domain.viewmodel.AdherentDetailsViewModel
 import com.example.sencsu.domain.viewmodel.DetailsUiEvent
 
-private val TextMain = Color(0xFF1F2937)
+// Couleurs (à adapter selon votre FormConstants si besoin)
+private val BackgroundColor = Color(0xFFF1F5F9)
+private val PrimaryColor = Color(0xFF2563EB)
+private val TextDark = Color(0xFF1E293B)
+private val TextLight = Color(0xFF64748B)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdherentDetailsScreen(
@@ -50,102 +46,70 @@ fun AdherentDetailsScreen(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val sessionManager = viewModel.sessionManager // Récupération du SessionManager via le ViewModel
-
-    var selectedPersonne by remember { mutableStateOf<PersonneChargeDto?>(null) }
-    var menuExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Gestion des événements UI (Navigation, Snackbar)
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is DetailsUiEvent.ShowSnackbar -> {
-                    snackbarHostState.showSnackbar(event.message)
-                }
+                is DetailsUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
                 is DetailsUiEvent.AdherentDeleted -> onNavigateBack()
             }
         }
     }
 
     Scaffold(
+        containerColor = BackgroundColor,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Détails de l'Adhérent", fontSize = 17.sp, fontWeight = FontWeight.Bold) },
+            CenterAlignedTopAppBar(
+                title = { Text("Détails Dossier", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = TextMain)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Retour")
                     }
                 },
                 actions = {
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = TextMain)
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                            modifier = Modifier.background(Color.White)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Ajouter une personne") },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.onAddPersonneClicked()
-                                },
-                                leadingIcon = { Icon(Icons.Default.Add, null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Supprimer l'adhérent", color = Color.Red) },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.confirmDeleteAdherent()
-                                },
-                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) }
-                            )
-                        }
+                    IconButton(onClick = { viewModel.showDeleteAdherentConfirmation() }) {
+                        Icon(Icons.Rounded.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor)
             )
         },
-
-        containerColor = Color(0xFFF5F7FA)
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.onAddPersonneClicked() },
+                containerColor = PrimaryColor,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Rounded.PersonAdd, "Ajouter personne")
+            }
+        }
     ) { padding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = state.isLoading,
+            onRefresh = { viewModel.refresh() },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            contentAlignment = Alignment.TopCenter
         ) {
-            when {
-                state.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color(0xFF5D6D7E)
-                    )
-                }
-                state.error != null -> {
-                    Text(
-                        text = state.error!!,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        color = Color(0xFF95A5A6),
-                        fontSize = 14.sp
-                    )
-                }
-                state.adherent != null -> {
-                    AdherentProfile(
-                        adherent = state.adherent!!,
-                        onPersonneClick = { selectedPersonne = it },
-                        sessionManager = sessionManager,
-                        viewModel = viewModel // Passage du ViewModel
-                    )
-                }
+            if (state.error != null) {
+                ErrorView(error = state.error!!) { viewModel.refresh() }
+            } else if (state.adherent != null) {
+                AdherentContent(
+                    adherent = state.adherent!!,
+                    sessionManager = viewModel.sessionManager,
+                    viewModel = viewModel
+                )
             }
         }
     }
 
+    // --- MODALES ET DIALOGUES ---
+
+    // 1. Modale d'ajout
     if (state.showAddPersonneModal) {
         AddPersonneChargeModal(
             personne = state.newPersonne,
@@ -155,392 +119,360 @@ fun AdherentDetailsScreen(
         )
     }
 
-    selectedPersonne?.let { personne ->
-        PersonneChargeModal(
-            personne = personne,
-            onDismiss = { selectedPersonne = null },
-            sessionManager = sessionManager // Passage du SessionManager
+    // 2. Visionneuse d'image plein écran
+    state.selectedImageUrl?.let { url ->
+        FullScreenImageViewer(
+            imageUrl = url,
+            sessionManager = viewModel.sessionManager,
+            onDismiss = { viewModel.closeImagePreview() }
         )
     }
 
-    // Affichage du dialogue d'aperçu d'image
-    if (state.showImageViewerDialog && state.imageToViewUrl != null) {
-        ImageViewerDialog(
-            imageUrl = state.imageToViewUrl,
-            sessionManager = sessionManager,
-            onDismiss = { viewModel.closeImagePreview() },
-            onDownloadClick = { url -> viewModel.downloadImage(url) }
+    // 3. Confirmation Suppression Adhérent
+    if (state.showDeleteAdherentDialog) {
+        DeleteConfirmationDialog(
+            title = "Supprimer l'adhérent ?",
+            text = "Cette action est irréversible. Toutes les données associées seront perdues.",
+            onConfirm = { viewModel.confirmDeleteAdherent() },
+            onDismiss = { viewModel.cancelDeleteAdherent() }
+        )
+    }
+
+    // 4. Confirmation Suppression Personne
+    state.personToDelete?.let { personne ->
+        DeleteConfirmationDialog(
+            title = "Supprimer le bénéficiaire ?",
+            text = "Voulez-vous vraiment retirer ${personne.prenoms} ${personne.nom} ?",
+            onConfirm = { viewModel.confirmDeletePersonne() },
+            onDismiss = { viewModel.cancelDeletePersonne() }
         )
     }
 }
 
 @Composable
-fun AdherentProfile(
+fun AdherentContent(
     adherent: AdherentDto,
-    onPersonneClick: (PersonneChargeDto) -> Unit,
-    sessionManager: SessionManager, // Ajout de SessionManager en paramètre
-    viewModel: AdherentDetailsViewModel // Ajout du ViewModel
+    sessionManager: SessionManager,
+    viewModel: AdherentDetailsViewModel
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // --- 1. Carte de profil (Photo principale) ---
+        // En-tête Profil
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(0.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                ) {
-                    ServerImage(
-                        filename = adherent.photo,
-                        sessionManager = sessionManager,
-                        contentDescription = "Photo de profil",
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFECF0F1)),
-                        contentScale = ContentScale.Crop,
-                        onClick = { adherent.photo?.let { viewModel.openImagePreview(it) } }
-                    )
+            ProfileHeaderCard(adherent, sessionManager, viewModel)
+        }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "${adherent.prenoms} ${adherent.nom}",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2C3E50)
-                    )
-
-                    adherent.secteurActivite?.let {
-                        Text(
-                            text = it,
-                            fontSize = 14.sp,
-                            color = Color(0xFF7F8C8D),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
+        // Infos Personnelles
+        item {
+            SectionCard(title = "Informations Civiles", icon = Icons.Rounded.Badge) {
+                InfoRow("CNI", adherent.numeroCNi)
+                InfoRow("Né(e) le", adherent.dateNaissance)
+                InfoRow("À", adherent.lieuNaissance)
+                InfoRow("Adresse", adherent.adresse)
+                InfoRow("Téléphone", adherent.whatsapp) // Ou telephone si dispo
             }
         }
 
-        // --- 2. Carte des informations personnelles ---
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(0.dp)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "Informations Personnelles",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2C3E50),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    InfoRow("Numéro CNI", adherent.numeroCNi)
-                    InfoRow("Date de Naissance", adherent.dateNaissance)
-                    InfoRow("Lieu de Naissance", adherent.lieuNaissance)
-                    InfoRow("Adresse", adherent.adresse)
-                    InfoRow("WhatsApp", adherent.whatsapp)
-                }
-            }
-        }
-
-        // --- 3. Carte des pièces d'identité (Recto/Verso) ---
+        // Pièces jointes
         if (adherent.photoRecto != null || adherent.photoVerso != null) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Pièces d'identité",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF2C3E50),
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
+                SectionCard(title = "Documents", icon = Icons.Rounded.FolderShared) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (adherent.photoRecto != null)
+                            DocumentThumbnail(
+                                "Recto",
+                                adherent.photoRecto,
+                                sessionManager,
+                                Modifier.weight(1f)
+                            ) { viewModel.openImagePreview(adherent.photoRecto) }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            adherent.photoRecto?.let { filename ->
-                                ImagePreviewCard(
-                                    title = "Recto",
-                                    filename = filename,
-                                    sessionManager = sessionManager,
-                                    viewModel = viewModel,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            adherent.photoVerso?.let { filename ->
-                                ImagePreviewCard(
-                                    title = "Verso",
-                                    filename = filename,
-                                    sessionManager = sessionManager,
-                                    viewModel = viewModel,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                        if (adherent.photoVerso != null)
+                            DocumentThumbnail(
+                                "Verso",
+                                adherent.photoVerso,
+                                sessionManager,
+                                Modifier.weight(1f)
+                            ) { viewModel.openImagePreview(adherent.photoVerso) }
                     }
                 }
             }
         }
 
-
-        // --- 4. Section Personnes à Charge ---
-        if (adherent.personnesCharge.isNotEmpty()) {
-            item {
+        // Liste des personnes à charge
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Personnes à Charge (${adherent.personnesCharge.size})",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF2C3E50),
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-            }
-
-            items(adherent.personnesCharge) { personne ->
-                PersonneChargeCard(
-                    personne = personne,
-                    onClick = { onPersonneClick(personne) },
-                    sessionManager = sessionManager,
-                    viewModel = viewModel // Passage du ViewModel
+                    "Bénéficiaires (${adherent.personnesCharge.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
                 )
             }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
+        if (adherent.personnesCharge.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp), contentAlignment = Alignment.Center
+                ) {
+                    Text("Aucun bénéficiaire enregistré", color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        } else {
+            items(adherent.personnesCharge) { personne ->
+                PersonneChargeItem(
+                    personne = personne,
+                    sessionManager = sessionManager,
+                    onImageClick = { viewModel.openImagePreview(personne.photo) },
+                    onDeleteClick = { viewModel.showDeletePersonneConfirmation(personne) }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ImagePreviewCard(
-    title: String,
-    filename: String,
+fun ProfileHeaderCard(
+    adherent: AdherentDto,
     sessionManager: SessionManager,
-    viewModel: AdherentDetailsViewModel,
-    modifier: Modifier = Modifier
+    viewModel: AdherentDetailsViewModel
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        ServerImage(
-            filename = filename,
-            sessionManager = sessionManager,
-            contentDescription = title,
-            modifier = Modifier
-                .height(100.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFECF0F1)),
-            contentScale = ContentScale.Crop,
-            onClick = { filename.let { viewModel.openImagePreview(it) } } // Clic pour ouvrir l'aperçu
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = title,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF7F8C8D)
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box {
+                ServerImage(
+                    filename = adherent.photo,
+                    sessionManager = sessionManager,
+                    contentDescription = "Photo de profil",
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE2E8F0))
+                        .clickable { viewModel.openImagePreview(adherent.photo) },
+                    contentScale = ContentScale.Crop,
+                )
+                // Petite icône loupe pour indiquer que c'est cliquable
+                Icon(
+                    Icons.Rounded.ZoomIn,
+                    contentDescription = null,
+                    modifier = Modifier.align(Alignment.BottomEnd).background(PrimaryColor, CircleShape).padding(4.dp).size(16.dp),
+                    tint = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "${adherent.prenoms} ${adherent.nom}",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                adherent.secteurActivite ?: "Secteur inconnu",
+                style = MaterialTheme.typography.bodyMedium,
+                color = PrimaryColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun SectionCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(title, fontWeight = FontWeight.SemiBold, color = TextDark)
+            }
+            HorizontalDivider(color = Color(0xFFF1F5F9))
+            Spacer(modifier = Modifier.height(12.dp))
+            content()
+        }
     }
 }
 
 @Composable
 fun InfoRow(label: String, value: String?) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        Text(label, color = TextLight, style = MaterialTheme.typography.bodyMedium)
         Text(
-            text = label,
-            fontSize = 13.sp,
-            color = Color(0xFF7F8C8D),
-            modifier = Modifier.width(140.dp)
-        )
-        Text(
-            text = value ?: "Non renseigné",
-            fontSize = 13.sp,
-            color = Color(0xFF2C3E50),
-            fontWeight = FontWeight.Medium
+            value ?: "N/A",
+            color = TextDark,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f).padding(start = 16.dp)
         )
     }
 }
 
 @Composable
-fun PersonneChargeCard(
+fun DocumentThumbnail(
+    title: String,
+    filename: String,
+    sessionManager: SessionManager,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        ServerImage(
+            filename = filename,
+            sessionManager = sessionManager,
+            contentDescription = title,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFE2E8F0))
+                .clickable(onClick = onClick),
+            contentScale = ContentScale.Crop
+        )
+        Text(title, style = MaterialTheme.typography.labelSmall, color = TextLight, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+@Composable
+fun PersonneChargeItem(
     personne: PersonneChargeDto,
-    onClick: () -> Unit,
-    sessionManager: SessionManager, // Ajout de SessionManager en paramètre
-    viewModel: AdherentDetailsViewModel // Ajout du ViewModel
+    sessionManager: SessionManager,
+    onImageClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(0.dp)
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ServerImage(
                 filename = personne.photo,
                 sessionManager = sessionManager,
-                contentDescription = "Photo ${personne.prenoms}",
+                contentDescription = null,
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFECF0F1)),
-                contentScale = ContentScale.Crop,
-                onClick = { personne.photo?.let { viewModel.openImagePreview(it) } } // Clic pour ouvrir l'aperçu
+                    .background(Color(0xFFE2E8F0))
+                    .clickable { onImageClick() },
+                contentScale = ContentScale.Crop
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${personne.prenoms} ${personne.nom}",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF2C3E50)
+                    "${personne.prenoms} ${personne.nom}",
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
                 )
                 Text(
-                    text = personne.lienParent ?: "Non renseigné",
-                    fontSize = 13.sp,
-                    color = Color(0xFF7F8C8D),
-                    modifier = Modifier.padding(top = 4.dp)
+                    personne.lienParent ?: "Autre",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextLight
                 )
             }
-
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = Color(0xFFBDC3C7),
-                modifier = Modifier.size(20.dp)
-            )
+            IconButton(onClick = onDeleteClick) {
+                Icon(Icons.Rounded.DeleteOutline, null, tint = Color(0xFFEF4444))
+            }
         }
     }
 }
 
 @Composable
-fun PersonneChargeModal(
-    personne: PersonneChargeDto,
-    onDismiss: () -> Unit,
-    sessionManager: SessionManager // Ajout de SessionManager en paramètre
+fun DeleteConfirmationDialog(
+    title: String,
+    text: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    // NOTE: Le modal PersonneChargeModal est une composition interne, il n'a pas accès direct au ViewModel.
-    // L'agrandissement d'image devra être géré par l'écran parent via des callbacks si c'est nécessaire.
-    // Pour l'instant, nous laissons le composant tel quel, mais la logique d'aperçu d'image au clic
-    // doit être gérée dans l'écran principal (AdherentDetailsScreen).
-    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(text) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Supprimer")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuler") }
+        }
+    )
+}
+
+@Composable
+fun ErrorView(error: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(Icons.Rounded.CloudOff, null, Modifier.size(64.dp), tint = TextLight)
+        Text(error, Modifier.padding(16.dp), textAlign = TextAlign.Center, color = TextLight)
+        Button(onClick = onRetry) { Text("Réessayer") }
+    }
+}
+
+@Composable
+fun FullScreenImageViewer(
+    imageUrl: String,
+    sessionManager: SessionManager,
+    onDismiss: () -> Unit
+) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Card(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+                .fillMaxSize()
+                .background(Color.Black)
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF8F9FA))
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        text = "Informations Détaillées",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2C3E50),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Fermer",
-                            tint = Color(0xFF7F8C8D)
-                        )
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Nous allons laisser le ServerImage ici sans onClick direct, car il n'a pas de ViewModel pour appeler openImagePreview
-                    ServerImage(
-                        filename = personne.photo,
-                        sessionManager = sessionManager,
-                        contentDescription = "Photo ${personne.prenoms}",
-                        modifier = Modifier
-                            .size(90.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFECF0F1)),
-                        contentScale = ContentScale.Crop,
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "${personne.prenoms} ${personne.nom}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2C3E50)
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Divider(color = Color(0xFFECF0F1))
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    InfoRow("Prénom(s)", personne.prenoms)
-                    InfoRow("Nom", personne.nom)
-                    InfoRow("Lien de parenté", personne.lienParent)
-                    InfoRow("Date de naissance", personne.dateNaissance)
-                    personne.lieuNaissance?.let {
-                        InfoRow("Lieu de naissance", it)
-                    }
-                    personne.numeroCNi?.let {
-                        InfoRow("Numéro CNI", it)
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+            ServerImage(
+                filename = imageUrl,
+                sessionManager = sessionManager,
+                contentDescription = "Image Fullscreen",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                contentScale = ContentScale.Fit
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(0.5f), CircleShape)
+            ) {
+                Icon(Icons.Rounded.Close, null, tint = Color.White)
             }
         }
     }

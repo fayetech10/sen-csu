@@ -62,8 +62,8 @@ class SearchViewModel @Inject constructor(
     ) { adherents, query, region, departement, commune ->
         adherents.filter { adherent ->
             val matchesSearch = query.isBlank() ||
-                    adherent.nom.contains(query, true) ||
-                    adherent.prenoms.contains(query, true) ||
+                    adherent.nom!!.contains(query, true) ||
+                    adherent.prenoms!!.contains(query, true) ||
                     adherent.numeroCNi?.contains(query, true) == true
 
             val matchesRegion = region?.let { it == adherent.region } ?: true

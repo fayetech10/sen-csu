@@ -1,18 +1,18 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.dagger.hilt.android)
 }
 
 android {
     namespace = "com.example.sencsu"
-    compileSdk = 34  // ✅ CORRIGÉ: 34 (Android 14), pas 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.sencsu"
         minSdk = 24
-        targetSdk = 34  // ✅ CORRIGÉ: 34, pas 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -47,6 +47,7 @@ android {
     }
 
     composeOptions {
+        // Pour Kotlin 1.9.24, 1.5.14 est correct
         kotlinCompilerExtensionVersion = "1.5.14"
     }
 
@@ -59,60 +60,39 @@ android {
 }
 
 dependencies {
-    // ===== Core =====
+    // Core & Lifecycle
     implementation(libs.androidx.core.ktx)
-    implementation(libs.kotlin.stdlib)
-
-    // ===== Activity / Lifecycle =====
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // ===== Compose =====
+    // Compose (Material 3 & Icons)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.vision.internal.vkp)
+    implementation(libs.androidx.compose.material.icons.extended)
 
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    implementation("androidx.compose.material:material-icons-extended:1.7.5")
-
-    // ===== Navigation =====
+    // Navigation & Hilt
     implementation(libs.androidx.navigation.compose)
-
-    // ===== Hilt =====
     implementation(libs.dagger.hilt.android)
     kapt(libs.dagger.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // ===== Coil =====
-    implementation(libs.coil.compose)
-
-    // ===== Retrofit / OkHttp =====
+    // Network & Image Loading
     implementation(libs.retrofit2)
     implementation(libs.retrofit2.converter.gson)
     implementation(libs.okhttp3.logging.interceptor)
+    implementation(libs.coil.compose)
 
-    // ===== DataStore =====
+    // Data Storage
     implementation(libs.androidx.datastore.preferences)
-
-    // ===== Room ===== (si vous l'utilisez)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
 
-    // ===== Tests =====
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-}
+    // Debug & Tooling
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
-kapt {
-    correctErrorTypes = true
 }

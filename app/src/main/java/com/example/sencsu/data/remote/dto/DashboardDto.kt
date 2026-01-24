@@ -1,6 +1,5 @@
 package com.example.sencsu.data.remote.dto
 
-import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import com.google.gson.annotations.SerializedName
 
@@ -12,34 +11,34 @@ data class ApiResponse<T>(
 
 data class DashboardResponseDto(
     @SerializedName("message")
-    val message: String,
+    val message: String?, // Peut être null parfois
     val success: Boolean,
     @SerializedName("data")
-    val adherents: List<AdherentDto>  = emptyList()
+    val adherents: List<AdherentDto>? = emptyList() // La liste elle-même peut être null
 )
 
-
 // DTO pour un adhérent
+// CORRECTION : Passage en nullable (?) pour éviter le crash NullPointerException
 data class AdherentDto(
-    val id: String? = "",
-    val prenoms: String = "",
-    val nom: String = "",
-    val adresse: String = "",
-    val lieuNaissance: String = "",
-    val statut: String = "ACTIVE",
-    val createdAt: String = "",
-    val sexe: String = "M",
-    val dateNaissance: String = "",
-    val situationM: String = "",
-    val whatsapp: String = "",
-    val secteurActivite: String = "",
-    val typePiece: String = "CNI",
-    val numeroPiece: String = "",
-    val numeroCNi: String = "",
-    val departement: String = "",
-    val commune: String = "",
-    val region: String = "Thiès",
-    val agentId: String = "",
+    val id: String? = null,
+    val prenoms: String? = "",
+    val nom: String? = null,
+    val adresse: String? = null,
+    val lieuNaissance: String? = null,
+    val statut: String? = "ACTIVE",
+    val createdAt: String? = null,
+    val sexe: String? = "M",
+    val dateNaissance: String? = null,
+    val situationM: String? = null,
+    val whatsapp: String? = null,
+    val secteurActivite: String? = null,
+    val typePiece: String? = "CNI",
+    val numeroPiece: String? = null,
+    val numeroCNi: String? = null,
+    val departement: String? = null,
+    val commune: String? = null,
+    val region: String? = "Thiès",
+    val agentId: String? = null,
     val photo: String? = null,
     val typeAdhesion: String? = null,
     val montantTotal: Int? = null,
@@ -47,24 +46,24 @@ data class AdherentDto(
     val photoRecto: String? = null,
     val photoVerso: String? = null,
     val clientUUID: String? = null,
-    val personnesCharge: List<PersonneChargeDto> = emptyList(),
+    val personnesCharge: List<PersonneChargeDto> = emptyList(), // Gson gère bien les listes vides si configuré, sinon mettre ?
     val agent: AgentDto? = null
 )
 
 // DTO pour une personne à charge
 data class PersonneChargeDto(
-    val id: String = "",
-    val prenoms: String = "",
-    val nom: String = "",
-    val dateNaissance: String = "",
-    val sexe: String = "M",
+    val id: String? = null,
+    val prenoms: String? = null,
+    val nom: String? = null,
+    val dateNaissance: String? = null,
+    val sexe: String? = "M",
     val lieuNaissance: String? = null,
     val adresse: String? = null,
     val whatsapp: String? = null,
     val lienParent: String? = null,
     val situationM: String? = null,
     val numeroCNi: String? = null,
-    val typePiece: String = "CNI",
+    val typePiece: String? = "CNI",
     val numeroExtrait: String? = null,
     val photo: String? = null,
     val photoRecto: String? = null,
@@ -74,27 +73,29 @@ data class PersonneChargeDto(
 // DTO pour l'agent
 data class AgentDto(
     @SerializedName("id")
-    val id: Int = 0,
+    val id: Int? = 0,
 
     @SerializedName("name")
-    val name: String = "",
+    val name: String? = null,
 
     @SerializedName("prenoms")
-    val prenoms: String = "",
+    val prenoms: String? = null,
 
     @SerializedName("email")
-    val email: String = "",
+    val email: String? = null,
+
     @SerializedName("role")
-    val role: String = "",
+    val role: String? = null,
 
     @SerializedName("telephone")
-    val telephone: String = ""
+    val telephone: String? = null
 )
 
 data class UploadResponse(
-    @SerializedName("filename") val filename: String,
-    @SerializedName("url") val url: String
+    @SerializedName("filename") val filename: String?,
+    @SerializedName("url") val url: String?
 )
+
 object FormConstants {
     val SITUATIONS = listOf("Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)")
     val TYPES_PIECE = listOf("CNI", "Extrait de naissance")

@@ -23,7 +23,7 @@ fun ServerImage(
     sessionManager: SessionManager, // Ajout du SessionManager en paramètre
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
-    onClick: (() -> Unit)? = null // Nouveau paramètre pour le clic
+//    onClick: (() -> Unit)? = null // Nouveau paramètre pour le clic
 ) {
     val context = LocalContext.current
     val token by sessionManager.tokenFlow.collectAsState(initial = null)
@@ -40,8 +40,8 @@ fun ServerImage(
             }
             .crossfade(true)
             .build(),
-        contentDescription = contentDescription, // Description générique, peut être améliorée
-        modifier = modifier.clickable(enabled = onClick != null) { onClick?.invoke() }, // Ajout du clic
+        contentDescription = "contentDescription", // Description générique, peut être améliorée
+//        modifier = modifier.clickable(enabled = onClick != null) { onClick?.invoke() }, // Ajout du clic
         contentScale = contentScale,
         placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
         error = painterResource(id = R.drawable.ic_launcher_foreground)

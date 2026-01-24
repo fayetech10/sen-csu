@@ -26,8 +26,8 @@ data class ListeAdherentState(
                 return adherents
             }
             return adherents.filter {
-                it.prenoms.contains(searchQuery, ignoreCase = true) ||
-                        it.nom.contains(searchQuery, ignoreCase = true) ||
+                it.prenoms!!.contains(searchQuery, ignoreCase = true) ||
+                        it.nom!!.contains(searchQuery, ignoreCase = true) ||
                         it.numeroCNi?.contains(searchQuery, ignoreCase = true) == true
             }
         }

@@ -1,6 +1,5 @@
 package com.example.sencsu.components.modals
 
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -84,7 +83,7 @@ fun AddDependantModalContent(
                     currentDep.copy(dateNaissance = selectedDate)
                 )
             },
-            isError = currentDep.dateNaissance.isEmpty()
+            isError = currentDep.dateNaissance == null
         )
 
         FormTextField(

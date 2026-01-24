@@ -70,7 +70,6 @@ import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.sencsu.data.remote.dto.FormConstants
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
-import com.example.sencsu.utils.Formatters
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -128,7 +127,7 @@ fun FormSection(
 @Composable
 fun DatePickerField(
     label: String,
-    value: String,
+    value: String?,
     onDateSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     isError: Boolean = false
@@ -137,33 +136,35 @@ fun DatePickerField(
     val datePickerState = rememberDatePickerState()
 
     Box(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            label = {
-                Text(
-                    text = label,
-                    color = FormConstants.Colors.textDark
+        if (value != null) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = {},
+                readOnly = true,
+                label = {
+                    Text(
+                        text = label,
+                        color = FormConstants.Colors.textDark
+                    )
+                },
+                placeholder = { Text("JJ/MM/AAAA") },
+                isError = isError,
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = "Sélectionner une date",
+                        tint = if (isError) FormConstants.Colors.error else FormConstants.Colors.primary
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.primary,
+                    unfocusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.inputBorder
                 )
-            },
-            placeholder = { Text("JJ/MM/AAAA") },
-            isError = isError,
-            modifier = Modifier.fillMaxWidth(),
-            trailingIcon = {
-                Icon(
-                    Icons.Default.DateRange,
-                    contentDescription = "Sélectionner une date",
-                    tint = if (isError) FormConstants.Colors.error else FormConstants.Colors.primary
-                )
-            },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.primary,
-                unfocusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.inputBorder
             )
-        )
+        }
 
         Box(
             modifier = Modifier
@@ -204,7 +205,7 @@ fun DatePickerField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormTextField(
-    value: String,
+    value: String?,
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
@@ -217,31 +218,33 @@ fun FormTextField(
     singleLine: Boolean = true
 ) {
     Column(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = { newValue ->
-                if (maxLength == null || newValue.length <= maxLength) {
-                    onValueChange(newValue)
-                }
-            },
-            label = {
-                Text(
-                    text = if (isRequired) "$label*" else label,
-                    color = FormConstants.Colors.textDark
+        if (value != null) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { newValue ->
+                    if (maxLength == null || newValue.length <= maxLength) {
+                        onValueChange(newValue)
+                    }
+                },
+                label = {
+                    Text(
+                        text = if (isRequired) "$label*" else label,
+                        color = FormConstants.Colors.textDark
+                    )
+                },
+                placeholder = { Text(text = placeholder, color = FormConstants.Colors.textGrey) },
+                singleLine = singleLine,
+                isError = isError,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.primary,
+                    unfocusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.inputBorder
                 )
-            },
-            placeholder = { Text(text = placeholder, color = FormConstants.Colors.textGrey) },
-            singleLine = singleLine,
-            isError = isError,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.primary,
-                unfocusedIndicatorColor = if (isError) FormConstants.Colors.error else FormConstants.Colors.inputBorder
             )
-        )
+        }
 
         if (isError && errorMessage != null) {
             Text(
@@ -432,13 +435,13 @@ fun DependantCard(
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
 
-                    if (dependant.dateNaissance.isNotEmpty()) {
+
                         Text(
                             text = "Né(e) le: ${dependant.dateNaissance}",
                             fontSize = 12.sp,
                             color = FormConstants.Colors.textGrey
                         )
-                    }
+
                 }
 
                 Row(

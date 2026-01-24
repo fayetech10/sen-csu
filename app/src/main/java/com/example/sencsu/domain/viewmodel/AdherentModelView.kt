@@ -59,7 +59,7 @@ class AdherentViewModel @Inject constructor(
                 // Si ton dashboard contient une liste d'adhérents (ex: result.adherents)
                 _uiState.update {
                     it.copy(
-                        adherents = result.adherents, // Remplace par le bon champ
+                        adherents = result.adherents ?: emptyList(),
                         isLoading = false,
                         error = null
                     )
