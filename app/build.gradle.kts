@@ -91,7 +91,12 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
+    implementation(platform("androidx.compose:compose-bom:2024.02.01"))
 
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
     // Debug & Tooling
     debugImplementation(libs.androidx.compose.ui.tooling)
 
