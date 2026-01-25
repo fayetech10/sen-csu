@@ -105,7 +105,7 @@ class AdherentDetailsViewModel @Inject constructor(
     fun cancelDeletePersonne() = _state.update { it.copy(personToDelete = null) }
 
     fun confirmDeletePersonne() {
-        val personneId = _state.value.personToDelete?.id?.toLongOrNull() ?: return
+        val personneId = _state.value.personToDelete?.id?: return
         viewModelScope.launch {
             try {
                 adherentRepository.deletePersonneCharge(personneId)

@@ -58,9 +58,9 @@ class ListeAdherentViewModel @Inject constructor(
             try {
                 Log.d("ListeAdherentVM", "Début de la récupération des adhérents...")
                 val data = repository.getDashboardData()
-                Log.d("ListeAdherentVM", "Adhérents récupérés: ${data.adherents?.size ?: 0}")
+                Log.d("ListeAdherentVM", "Adhérents récupérés: ${data.data.size}")
                 _state.update {
-                    it.copy(isLoading = false, adherents = data.adherents ?: emptyList())
+                    it.copy(isLoading = false, adherents = data.data)
                 }
             } catch (e: Exception) {
                 Log.e("ListeAdherentVM", "Erreur: ${e.message}", e)

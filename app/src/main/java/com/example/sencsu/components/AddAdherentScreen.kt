@@ -46,7 +46,7 @@ private val SuccessGreen = Color(0xFF10B981)
 @Composable
 fun AddAdherentScreen(
     onBack: () -> Unit,
-    onNavigateToPayment: (data: AdherentDto, montantTotal: Int) -> Unit,
+    onNavigateToPayment: (adherentId: Long, montantTotal: Int) -> Unit,
     agentId: Long?,
     viewModel: AddAdherentViewModel = hiltViewModel(),
 ) {
@@ -65,7 +65,11 @@ fun AddAdherentScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is AddAdherentUiEvent.NavigateToPayment -> onNavigateToPayment(event.formData, event.montantTotal)
+                is AddAdherentUiEvent.NavigateToPayment -> {
+                    event.adherentId?.let {
+                        onNavigateToPayment(it, event.montantTotal)
+                    }
+                }
                 is AddAdherentUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
             }
         }

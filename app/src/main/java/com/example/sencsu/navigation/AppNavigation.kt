@@ -69,8 +69,8 @@ fun AppNavigation(viewModel: AppNavigationViewModel = hiltViewModel()) {
         ) {
             AddAdherentScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToPayment = { adherent, montantTotal ->
-                    navController.navigate("payments/${adherent.id}/$montantTotal")
+                onNavigateToPayment = { adherentId, montantTotal ->
+                    navController.navigate("payments/${adherentId}/$montantTotal")
                 },
                 agentId = agentId
             )

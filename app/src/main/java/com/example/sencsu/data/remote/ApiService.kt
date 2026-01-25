@@ -14,44 +14,44 @@ import retrofit2.http.Query
 
 interface ApiService {
 
-    @POST("auth/login")
+    @POST("/api/auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
-    @GET("adherents/all")
+    @GET("/api/adherents/all")
     suspend fun getDashboardData(): DashboardResponseDto
-    @POST("adherents/create")
+    @POST("/api/adherents/create")
     suspend fun createAdherent(
         @Query("agentId") agentId: Long,
         @Body adherent: AdherentDto
-    ): Response<AdherentDto>
+    ): CreateAdherentResponse
 
     @Multipart
-    @POST("files/upload")
+    @POST("/api/files/upload")
     suspend fun uploadFile(
         @Part file: MultipartBody.Part
     ): Response<UploadResponse>
 
-    @GET("adherents/{id}")
+    @GET("/api/adherents/{id}")
     suspend fun getAdherentById(
         @Path("id") id: Long
     ): ApiResponse<AdherentDto>
 
-    @GET("adherents/by-agent/{agentId}")
+    @GET("/api/adherents/by-agent/{agentId}")
     suspend fun getAdherentsByAgentId(
         @Path("agentId") agentId:  Long
     ): ApiResponse<List<AdherentDto>>
 
-    @DELETE("adherents/{id}")
+    @DELETE("/api/adherents/{id}")
     suspend fun deleteAdherent(
         @Path("id") id: Long
     ) : Response<Unit>
 
-    @DELETE("personnes-charge/{id}")
+    @DELETE("/api/personnes-charge/{id}")
     suspend fun deletePersonneCharge(
         @Path("id") id: Long
     )
 
-    @POST("adherents/{adherentId}/personnes-charge")
+    @POST("/api/adherents/{adherentId}/personnes-charge")
     suspend fun addPersonneCharge(
         @Path("adherentId") adherentId: Long,
         @Body personne: PersonneChargeDto

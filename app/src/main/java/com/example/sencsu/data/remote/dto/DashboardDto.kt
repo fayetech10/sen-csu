@@ -1,6 +1,7 @@
 package com.example.sencsu.data.remote.dto
 
 import androidx.compose.ui.graphics.Color
+//import com.google.gson.annotations.SerializedName
 import com.google.gson.annotations.SerializedName
 
 // DTO pour la réponse complète
@@ -10,85 +11,128 @@ data class ApiResponse<T>(
 )
 
 data class DashboardResponseDto(
-    @SerializedName("message")
-    val message: String?, // Peut être null parfois
+    val message: String = "",
+    val success: Boolean = false,
+    val data: List<AdherentDto> = emptyList()
+)
+
+
+data class CreateAdherentResponse(
     val success: Boolean,
-    @SerializedName("data")
-    val adherents: List<AdherentDto>? = emptyList() // La liste elle-même peut être null
+    val message: String,
+    val data: AdherentIdResponse
+)
+
+data class AdherentIdResponse(
+    @SerializedName("adherent_id")
+    val adherentId: Long
 )
 
 // DTO pour un adhérent
 // CORRECTION : Passage en nullable (?) pour éviter le crash NullPointerException
+
 data class AdherentDto(
-    val id: String? = null,
-    val prenoms: String? = "",
-    val nom: String? = null,
-    val adresse: String? = null,
-    val lieuNaissance: String? = null,
+    val id: Long? = null,
+
+    @SerializedName("prenoms")
+    val prenoms: String? = "", // Peut être null parfois
+
+    val nom: String? = "",
+
+    val adresse: String? = "",
+
+    val lieuNaissance: String? = "",
+
     val statut: String? = "ACTIVE",
-    val createdAt: String? = null,
+
+    val createdAt: String? = "",
+
     val sexe: String? = "M",
-    val dateNaissance: String? = null,
+
+    val dateNaissance: String? = "",
+
+    // C'était la cause principale du crash car le JSON renvoie null
+    @SerializedName("situationMatrimoniale")
     val situationM: String? = null,
-    val whatsapp: String? = null,
-    val secteurActivite: String? = null,
+
+    val whatsapp: String? = "",
+
+    val secteurActivite: String? = null, // Souvent null ou vide
+
     val typePiece: String? = "CNI",
-    val numeroPiece: String? = null,
-    val numeroCNi: String? = null,
-    val departement: String? = null,
-    val commune: String? = null,
+
+    val numeroPiece: String? = "",
+
+    val numeroCNi: String? = "",
+
+    val departement: String? = "",
+
+    val commune: String? = "",
+
     val region: String? = "Thiès",
-    val agentId: String? = null,
+
     val photo: String? = null,
+
+    // Cause du crash : JSON renvoie null
     val typeAdhesion: String? = null,
-    val montantTotal: Int? = null,
-    val regime: String? = "CONTRIBUTIF",
+
+    val montantTotal: Double? = 0.0,
+
+    // Cause du crash : JSON renvoie null
+    val regime: String? = null,
+
     val photoRecto: String? = null,
+
     val photoVerso: String? = null,
-    val clientUUID: String? = null,
-    val personnesCharge: List<PersonneChargeDto> = emptyList(), // Gson gère bien les listes vides si configuré, sinon mettre ?
+
+    val clientUUID: String? = "",
+
+    val personnesCharge: List<PersonneChargeDto> = emptyList(),
+
     val agent: AgentDto? = null
 )
 
+
 // DTO pour une personne à charge
 data class PersonneChargeDto(
-    val id: String? = null,
-    val prenoms: String? = null,
-    val nom: String? = null,
-    val dateNaissance: String? = null,
+    val id: Long? = null,
+    val prenoms: String? = "",
+    val nom: String? = "",
+    val dateNaissance: String? = "",
     val sexe: String? = "M",
-    val lieuNaissance: String? = null,
-    val adresse: String? = null,
-    val whatsapp: String? = null,
-    val lienParent: String? = null,
-    val situationM: String? = null,
-    val numeroCNi: String? = null,
+    val lieuNaissance: String? = "",
+    val adresse: String? = "",
+    val whatsapp: String? = "",
+    val lienParent: String? = "",
+
+    @SerializedName("situationM")
+    val situationM: String? = null, // Peut être null
+
+    val numeroCNi: String? = null, // Important : null dans ton JSON pour l'enfant
+
     val typePiece: String? = "CNI",
-    val numeroExtrait: String? = null,
+    val numeroExtrait: String? = "",
     val photo: String? = null,
     val photoRecto: String? = null,
     val photoVerso: String? = null
 )
 
+
+
 // DTO pour l'agent
 data class AgentDto(
-    @SerializedName("id")
-    val id: Int? = 0,
+    val id: Long? = null,
 
-    @SerializedName("name")
-    val name: String? = null,
+    val name: String? = "",
 
-    @SerializedName("prenoms")
-    val prenoms: String? = null,
+    @SerializedName("prenom")
+    val prenoms: String? = "",
 
-    @SerializedName("email")
-    val email: String? = null,
+    val email: String? = "",
 
-    @SerializedName("role")
-    val role: String? = null,
+    val role: String? = "",
 
-    @SerializedName("telephone")
-    val telephone: String? = null
+    val telephone: String? = ""
 )
 
 data class UploadResponse(

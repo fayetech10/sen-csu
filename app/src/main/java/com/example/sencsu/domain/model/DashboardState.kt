@@ -15,6 +15,6 @@ data class DashboardState(
 
     // Propriétés calculées pour faciliter l'accès
     val message: String get() = data?.message ?: ""
-    val adherents: List<Any> get() = data?.adherents ?: emptyList()
-    val adherentsCount: Int get() = data?.adherents?.size ?: 0
+    val adherents: List<Any> get() = data?.data ?: emptyList()
+    val adherentsCount: Int get() = data?.data?.size ?: 0
 }

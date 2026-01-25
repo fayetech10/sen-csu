@@ -154,9 +154,9 @@ private fun DashboardContent(
     navController: NavController,
     sessionManager: SessionManager
 ) {
-    val adherents = data.adherents ?: emptyList()
-    val totalAmount = adherents.sumOf { it.montantTotal ?: 0 }
-    val totalDeps = adherents.sumOf { it.personnesCharge?.size ?: 0 }
+    val adherents = data.data
+    val totalAmount = adherents.sumOf { it.montantTotal!!}
+    val totalDeps = adherents.sumOf { it.personnesCharge.size }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -203,7 +203,7 @@ private fun DashboardContent(
 }
 
 @Composable
-fun BentoStatsGrid(totalMembers: Int, totalAmount: Int, totalDependents: Int) {
+fun BentoStatsGrid(totalMembers: Int, totalAmount: Double, totalDependents: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Card Principale (Recettes) avec Correction du Brush
         Surface(
@@ -221,7 +221,7 @@ fun BentoStatsGrid(totalMembers: Int, totalAmount: Int, totalDependents: Int) {
                 Column {
                     Text("Total Encaissé", color = Color.White.copy(0.8f), fontSize = 14.sp)
                     Text(
-                        "${String.format("%,d", totalAmount)} FCFA",
+                        String.format("Total : %.0f FCFA", totalAmount),
                         color = Color.White,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Black

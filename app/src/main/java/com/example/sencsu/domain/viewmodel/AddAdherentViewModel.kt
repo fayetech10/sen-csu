@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sencsu.data.remote.dto.AdherentDto
+import com.example.sencsu.data.remote.dto.AdherentIdResponse
 import com.example.sencsu.data.remote.dto.FormConstants
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
 import com.example.sencsu.data.repository.DashboardRepository
@@ -34,7 +35,7 @@ sealed class AdherentListUiEvent {
 
 sealed class AddAdherentUiEvent {
     data class ShowSnackbar(val message: String) : AddAdherentUiEvent()
-    data class NavigateToPayment(val formData: AdherentDto, val montantTotal: Int) : AddAdherentUiEvent()
+    data class NavigateToPayment(val adherentId: Long?, val montantTotal: Int) : AddAdherentUiEvent()
 }
 @HiltViewModel
 class AddAdherentViewModel @Inject constructor(
@@ -118,7 +119,6 @@ class AddAdherentViewModel @Inject constructor(
                 )
 
                 _uiState.update { it.copy(uploadProgress = 1f) }
-                _uiEvent.send(AddAdherentUiEvent.ShowSnackbar("Enregistrement réussi"))
 
             } catch (e: Exception) {
                 Log.e("UploadError", "Erreur lors de l'upload", e)
@@ -151,25 +151,34 @@ class AddAdherentViewModel @Inject constructor(
             }.fold(
                 onSuccess = { adherent ->
                     adherentRepository.ajouterAdherent(agentId!!, adherent)
-                        .onSuccess { newAdherent ->
-                            _uiEvent.send(AddAdherentUiEvent.ShowSnackbar("Adhérent ajouté avec succès !"))
+                        .onSuccess { idResponse ->
+                            // ✅ Maintenant le type est correct !
+                            val adherentId = idResponse.adherentId
+
+                            _uiEvent.send(
+                                AddAdherentUiEvent.ShowSnackbar("Adhérent ajouté avec succès !")
+                            )
                             resetForm()
+
                             _uiEvent.send(
                                 AddAdherentUiEvent.NavigateToPayment(
-                                    newAdherent,
+                                    adherentId,
                                     uiState.value.totalCost
                                 )
                             )
                         }
-                        .onFailure { sendError(it as Exception) }
+                        .onFailure { error ->
+                            sendError(error as Exception)
+                        }
                 },
-                onFailure = { sendError(it as Exception) }
+                onFailure = { error ->
+                    sendError(error as Exception)
+                }
             )
 
             _uiState.update { it.copy(isLoading = false) }
         }
     }
-
     private suspend fun sendError(exception: Exception) {
         val errorMessage = parseBackendError(exception)
         _uiEvent.send(AddAdherentUiEvent.ShowSnackbar(errorMessage))
@@ -256,7 +265,7 @@ class AddAdherentViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 currentDependant = PersonneChargeDto(
-                    id = "",
+                    id = null,
                     prenoms = "",
                     nom = "",
                     dateNaissance = "",
@@ -297,9 +306,9 @@ class AddAdherentViewModel @Inject constructor(
             commune = state.commune,
             region = "Thiès",
             // URLs des images uploadées
-            photo = photoUrl,
-            photoRecto = rectoUrl,
-            photoVerso = versoUrl,
+            photo = photoUrl.toString(),
+            photoRecto = rectoUrl.toString(),
+            photoVerso = versoUrl.toString(),
             clientUUID = "${System.currentTimeMillis()}-${(0..1000).random()}",
             personnesCharge = state.dependants.map { dep ->
                 dep.copy(

@@ -105,7 +105,7 @@ fun RecentActivitiesSection(
                                 ModernAdherentRow(
                                     adherent = adherent,
                                     onClick = {
-                                        adherent.id?.toLongOrNull()?.let {
+                                        adherent.id?.let {
                                             onAdherentClick(it)
                                         }
                                     },

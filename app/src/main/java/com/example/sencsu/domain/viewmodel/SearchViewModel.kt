@@ -99,7 +99,7 @@ class SearchViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 val response = repository.getDashboardData()
-                _allAdherents.value = response.adherents ?: emptyList()
+                _allAdherents.value = response.data
             } catch (e: Exception) {
                 _error.value = "Impossible de charger les adhérents."
             } finally {

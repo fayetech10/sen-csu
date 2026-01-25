@@ -90,7 +90,7 @@ class DashboardViewModel @Inject constructor(
                             it.copy(
                                 isLoading = false,
                                 data = DashboardResponseDto(
-                                    adherents = adherent,
+                                    data = adherent,
                                     success = true,
                                     message = "Liste des adhérents"
                                 ),

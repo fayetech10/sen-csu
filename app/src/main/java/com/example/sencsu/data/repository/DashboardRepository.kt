@@ -3,6 +3,7 @@ package com.example.sencsu.data.repository
 import android.util.Log
 import com.example.sencsu.data.remote.ApiService
 import com.example.sencsu.data.remote.dto.AdherentDto
+import com.example.sencsu.data.remote.dto.AdherentIdResponse
 import com.example.sencsu.data.remote.dto.DashboardResponseDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,37 +31,27 @@ class DashboardRepository @Inject constructor(
 
 
 
-    suspend fun ajouterAdherent(agentId: Long, adherent: AdherentDto): Result<AdherentDto> {
+    suspend fun ajouterAdherent(agentId: Long, adherent: AdherentDto): Result<AdherentIdResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.createAdherent(agentId, adherent) // agentId à adapter
-                if (response.isSuccessful) {
-                    val adherentCree = response.body()
-                    if (adherentCree != null) {
-                        Result.success(adherentCree)
-                    } else {
-                        Result.failure(Exception("Réponse vide du serveur"))
-                    }
+                val response = apiService.createAdherent(agentId, adherent)
+                if (response.success) {
+                    val adherentCree = response.data // Ceci est un AdherentIdResponse
+                    Result.success(adherentCree)
                 } else {
-                    Log.e("AddAdherentVM", "Erreur submit")
-                    val errorMessage = when (response.code()) {
-                        400 -> "Requête invalide"
-                        401 -> "Non autorisé"
-                        403 -> "Accès refusé"
-                        404 -> "Ressource non trouvée"
-                        500 -> "Erreur serveur interne"
-                        else -> "Erreur ${response.code()}: ${response.message()}"
-                    }
-                    Result.failure(Exception(errorMessage))
+                    Log.e("DashboardRepository", "Erreur lors de la création de l'adhérent")
+                    Result.failure(Exception(response.message ?: "Erreur inconnue"))
                 }
             } catch (e: HttpException) {
-                Result.failure(Exception("Erreur HTTP: ${e.message}"))
+                Log.e("DashboardRepository", "Erreur HTTP: ${e.message}")
+                Result.failure(Exception("Erreur HTTP: ${e.code()} - ${e.message}"))
             } catch (e: IOException) {
+                Log.e("DashboardRepository", "Erreur de connexion: ${e.message}")
                 Result.failure(Exception("Erreur de connexion: ${e.message}"))
             } catch (e: Exception) {
+                Log.e("DashboardRepository", "Erreur inattendue: ${e.message}")
                 Result.failure(Exception("Erreur inattendue: ${e.message}"))
-            } as Result<AdherentDto>
+            }
         }
     }
-
 }
