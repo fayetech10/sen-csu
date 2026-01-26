@@ -15,10 +15,21 @@ class PaiementViewModel @Inject constructor() : ViewModel() {
     var uiState by mutableStateOf(PaiementFormState())
         private set
 
-    fun updateReference(ref: String) { uiState = uiState.copy(reference = ref) }
-    fun updateMode(mode: String) { uiState = uiState.copy(modePaiement = mode) }
-    fun updateMontant(montant: String) { uiState = uiState.copy(montantTotal = montant) }
-    fun setPhoto(uri: Uri?) { uiState = uiState.copy(photoPaiement = uri) }
+    fun updateReference(ref: String) {
+        uiState = uiState.copy(reference = ref)
+    }
+
+    fun updateMode(mode: String) {
+        uiState = uiState.copy(modePaiement = mode)
+    }
+
+    fun updateMontant(montant: String) {
+        uiState = uiState.copy(montantTotal = montant)
+    }
+
+    fun setPhoto(uri: Uri?) {
+        uiState = uiState.copy(photoPaiement = uri)
+    }
 
     fun processImage(uri: Uri, context: Context, recognizer: TextRecognizer) {
         uiState = uiState.copy(isLoading = true)
@@ -39,83 +50,137 @@ class PaiementViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-//    private fun extractReferencePattern(text: String): String {
-//        // 1. Astuce importante : On remplace les sauts de ligne par des espaces.
-//        // Cela permet de lire "ID de transaction TL7..." comme une seule phrase,
-//        // même si l'OCR les voit sur des lignes différentes.
-//        val flatText = text.replace("\n", " ").replace("\r", " ")
-//
-//        val patterns = listOf(
-//            // PRIORITÉ 1 : Le format exact de ta photo (Wave)
-//            // Cherche "ID de transaction" (insensible à la casse) suivi d'espaces, puis capture le code
-//            """(?i)id\s+de\s+transaction\s*[:\s]*([A-Z0-9]+)""".toRegex(),
-//
-//            // PRIORITÉ 2 : Autres formats courants (Orange Money utilise souvent "Trans ID")
-//            """(?i)(?:trans|transaction)\s*id\s*[:\s]*([A-Z0-9]+)""".toRegex(),
-//
-//            // PRIORITÉ 3 : Fallback (Si on ne trouve pas le label, on cherche juste un long code)
-//            // Les codes Wave/OM font généralement au moins 10 caractères majuscules/chiffres
-//            """([A-Z0-9]{10,})""".toRegex()
-//        )
-//
-//        for (pattern in patterns) {
-//            val match = pattern.find(flatText)
-//            if (match != null) {
-//                // On retourne le groupe 1 (la partie entre parenthèses, c'est-à-dire le code)
-//                return match.groupValues.getOrNull(1) ?: ""
-//            }
-//        }
-//        return ""
-//    }
     private fun extractReferencePattern(text: String): String {
-        // Diviser le texte en lignes
-        val lines = text.lines()
+        // Normalise le texte EN REMPLAÇANT les sauts de ligne par des espaces
+        // Cela permet "ID de\ntransaction" de devenir "ID de transaction"
+        val flat = text.replace("\n", " ")
+            .replace("\r", " ")
+            .replace(Regex("\\s+"), " ") // Réduit les espaces multiples à un seul
+            .trim()
 
-        // Chercher la ligne qui contient "ID de transaction"
-        for (i in lines.indices) {
-            val line = lines[i].trim()
+        // DEBUG : Affiche le texte OCR complet dans les logs
+        android.util.Log.d("OCR_DEBUG", "Texte OCR détecté: $flat")
 
-            // Si cette ligne contient "ID de transaction"
-            if (line.contains("ID de transaction", ignoreCase = true) ||
-                line.contains("Transaction ID", ignoreCase = true) ||
-                line.contains("TXN", ignoreCase = true)) {
-
-                // Option 1: Le code peut être sur la même ligne après ":"
-                val parts = line.split(":", " ")
-                for (part in parts) {
-                    val trimmed = part.trim()
-                    // Vérifier si c'est un code de transaction (alphanumérique, longueur > 8)
-                    if (trimmed.matches(Regex("[A-Z0-9]{8,}"))) {
-                        return trimmed
-                    }
-                }
-
-                // Option 2: Le code peut être sur la ligne suivante
-                if (i + 1 < lines.size) {
-                    val nextLine = lines[i + 1].trim()
-                    // Chercher un code alphanumérique dans la ligne suivante
-                    val pattern = Regex("([A-Z0-9]+(?:\\s+[A-Z0-9]+)?)")
-                    val match = pattern.find(nextLine)
-                    if (match != null) {
-                        return match.value.trim()
-                    }
-                }
-            }
-        }
-
-        // Fallback: chercher n'importe quel code qui ressemble à un ID de transaction
-        val fallbackPatterns = listOf(
-            """([A-Z0-9]{8,}\s+[A-Z0-9]{5,})""".toRegex(), // Avec espace
-            """([A-Z0-9]{12,})""".toRegex() // Sans espace
+        // STRATÉGIE 1 : Cherche "ID de transaction" suivi du code (peut être coupé en plusieurs lignes)
+        // Le code peut être sur la même ligne ou la ligne suivante
+        val regex1 = Regex(
+            """(?i)\bid\s+de\s+transaction\s+([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)""",
+            RegexOption.IGNORE_CASE
         )
 
-        for (pattern in fallbackPatterns) {
-            val match = pattern.find(text)
-            if (match != null) {
-                return match.groupValues.getOrNull(1) ?: match.value
+        val match1 = regex1.find(flat)
+        if (match1 != null) {
+            var code = match1.groupValues[1].trim()
+                .replace(Regex("\\s+"), "") // Supprime tous les espaces du code
+            android.util.Log.d("OCR_DEBUG", "Match regex1 trouvé: $code")
+
+            // Prend seulement les 15-25 premiers caractères
+            if (code.length > 25) {
+                code = code.substring(0, 25)
+            }
+
+            if (isValidTransactionCode(code)) {
+                android.util.Log.d("OCR_DEBUG", "Code validé: $code")
+                return code
             }
         }
 
+        // STRATÉGIE 2 : Cherche avec des caractères spéciaux ou deux-points entre
+        val regex2 = Regex(
+            """(?i)\bid\s+de\s+transaction\s*[:\-]?\s*([A-Za-z0-9]+)""",
+            RegexOption.IGNORE_CASE
+        )
+
+        val match2 = regex2.find(flat)
+        if (match2 != null) {
+            var code = match2.groupValues[1].trim()
+            android.util.Log.d("OCR_DEBUG", "Match regex2 trouvé: $code")
+
+            if (code.length > 25) {
+                code = code.substring(0, 25)
+            }
+
+            if (isValidTransactionCode(code)) {
+                android.util.Log.d("OCR_DEBUG", "Code validé (stratégie 2): $code")
+                return code
+            }
+        }
+
+        // STRATÉGIE 3 : Cherche juste le label "transaction" (au cas où "ID de" est vraiment séparé)
+        val regex3 = Regex(
+            """(?i)\btransaction\s+([A-Za-z0-9]+)""",
+            RegexOption.IGNORE_CASE
+        )
+
+        val match3 = regex3.find(flat)
+        if (match3 != null) {
+            var code = match3.groupValues[1].trim()
+            android.util.Log.d("OCR_DEBUG", "Match regex3 trouvé: $code")
+
+            if (code.length > 25) {
+                code = code.substring(0, 25)
+            }
+
+            if (isValidTransactionCode(code)) {
+                android.util.Log.d("OCR_DEBUG", "Code validé (stratégie 3): $code")
+                return code
+            }
+        }
+
+        // STRATÉGIE 4 : Fallback - cherche un code sans label
+        val regex4 = Regex("""([A-Za-z0-9]{15,25})""")
+        val allMatches = regex4.findAll(flat)
+        for (match in allMatches) {
+            val code = match.value.trim()
+            android.util.Log.d("OCR_DEBUG", "Code candidat: $code")
+            if (isValidTransactionCode(code)) {
+                android.util.Log.d("OCR_DEBUG", "Code validé (stratégie 4): $code")
+                return code
+            }
+        }
+
+        android.util.Log.d("OCR_DEBUG", "Aucun code trouvé")
         return ""
+    }
+
+    private fun isValidTransactionCode(code: String): Boolean {
+        // Rejette les codes qui sont clairement du texte français
+        val invalidPatterns = listOf(
+            "PAIEMENT",
+            "STATUT",
+            "EFFECTUE",
+            "FRAIS",
+            "MONTANT",
+            "REFERENCE",
+            "DATE",
+            "HEURE",
+            "PARTENARIAT",
+            "DIGITAL",
+            "FINANCE",
+            "WAVE",
+            "ORANGE"
+        )
+
+        // Vérifie que le code n'est pas composé SEULEMENT de lettres
+        if (!code.any { it.isDigit() }) {
+            android.util.Log.d("OCR_DEBUG", "Rejeté (pas de chiffres): $code")
+            return false
+        }
+
+        // Vérifie que le code a une longueur raisonnable
+        if (code.length < 15 || code.length > 25) {
+            android.util.Log.d("OCR_DEBUG", "Rejeté (longueur): $code (${code.length} caractères)")
+            return false
+        }
+
+        // Vérifie que le code ne commence pas par un mot français
+        for (pattern in invalidPatterns) {
+            if (code.startsWith(pattern, ignoreCase = true)) {
+                android.util.Log.d("OCR_DEBUG", "Rejeté (commence par '$pattern'): $code")
+                return false
+            }
+        }
+
+        return true
     }
 }
