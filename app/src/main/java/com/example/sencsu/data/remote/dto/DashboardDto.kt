@@ -50,6 +50,8 @@ data class AdherentDto(
     val sexe: String? = "M",
 
     val dateNaissance: String? = "",
+    val lieuDeNaissance: String? = "",
+    val typeBenef: String? = "",
 
     // C'était la cause principale du crash car le JSON renvoie null
     @SerializedName("situationMatrimoniale")
@@ -79,7 +81,7 @@ data class AdherentDto(
     val montantTotal: Double? = 0.0,
 
     // Cause du crash : JSON renvoie null
-    val regime: String? = null,
+    val regime: String? ="Contributif",
 
     val photoRecto: String? = null,
 
@@ -112,9 +114,9 @@ data class PersonneChargeDto(
 
     val typePiece: String? = "CNI",
     val numeroExtrait: String? = "",
-    val photo: String? = null,
-    val photoRecto: String? = null,
-    val photoVerso: String? = null
+    var photo: String? ="",
+    var photoRecto: String? = "",
+    var photoVerso: String? = ""
 )
 
 

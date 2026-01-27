@@ -31,6 +31,11 @@ interface ApiService {
         @Part file: MultipartBody.Part
     ): Response<UploadResponse>
 
+    @POST("/api/paiements/add")
+    suspend fun addPaiement(
+        @Body paiement: PaiementDto
+    ): Response<Unit>
+
     @GET("/api/adherents/{id}")
     suspend fun getAdherentById(
         @Path("id") id: Long

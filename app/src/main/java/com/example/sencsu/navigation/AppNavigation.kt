@@ -102,8 +102,8 @@ fun AppNavigation(viewModel: AppNavigationViewModel = hiltViewModel()) {
             )
         ) { backStackEntry ->
             val adherentId = backStackEntry.arguments?.getString("adherentId")?.toLongOrNull()
-            val montantTotal = backStackEntry.arguments?.getString("montantTotal")?.toIntOrNull()
-            Paiement(adherentId = adherentId, montantTotal = montantTotal)
+            val montantTotal = backStackEntry.arguments?.getString("montantTotal")?.toDoubleOrNull()
+            Paiement(adherentId = adherentId, montantTotal = montantTotal,navController = navController)
         }
 
         composable(

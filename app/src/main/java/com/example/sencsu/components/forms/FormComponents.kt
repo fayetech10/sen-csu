@@ -6,6 +6,7 @@ import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -31,9 +33,15 @@ import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.rounded.AddAPhoto
+import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -57,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -68,6 +77,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.sencsu.data.remote.dto.FormConstants
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
 import java.io.File
@@ -474,7 +484,7 @@ fun DependantCard(
 @Composable
 fun ImagePickerComponent(
     label: String,
-    imageUri: Uri?,
+    imageUri: String?,
     onImageSelected: (Uri?) -> Unit,
     required: Boolean = false,
     modifier: Modifier = Modifier,
@@ -484,143 +494,152 @@ fun ImagePickerComponent(
     var showOptionsDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Launcher pour la galerie
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        onImageSelected(uri)
-    }
+    ) { uri -> uri?.let { onImageSelected(it) } }
 
-    // Launcher pour la caméra
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success && tempCameraUri != null) {
-            onImageSelected(tempCameraUri)
-        }
+        if (success) onImageSelected(tempCameraUri)
         tempCameraUri = null
     }
 
-    Column(modifier = modifier) {
-        Text(
-            text = if (required) "$label*" else label,
-            fontSize = 14.sp,
-            color = if (isError) FormConstants.Colors.error else FormConstants.Colors.textDark,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+    Column(modifier = modifier.animateContentSize()) {
+        // Label
+        Row {
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                color = if (isError) FormConstants.Colors.error else FormConstants.Colors.textDark,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (required) {
+                Text(text = "*", color = FormConstants.Colors.error, fontSize = 14.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(FormConstants.Colors.inputBorder.copy(alpha = 0.2f))
                 .border(
                     width = 2.dp,
-                    color = if (isError) {
-                        FormConstants.Colors.error
-                    } else if (imageUri != null) {
-                        FormConstants.Colors.primary
-                    } else {
-                        FormConstants.Colors.inputBorder
+                    color = when {
+                        isError -> FormConstants.Colors.error
+                        imageUri != null -> FormConstants.Colors.primary
+                        else -> FormConstants.Colors.inputBorder
                     },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp)
                 )
                 .clickable { showOptionsDialog = true }
         ) {
-            if (imageUri != null) {
-                // Affichage de l'image
-                AsyncImage(
+            if (!imageUri.isNullOrEmpty()) {
+                // Image avec indicateur de chargement
+                SubcomposeAsyncImage(
                     model = imageUri,
                     contentDescription = label,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                // On définit la taille ici via le modifier
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = FormConstants.Colors.primary
+                            )
+                        }
+                    }
                 )
 
-                // Overlay avec icône de changement
+                // Overlay d'action
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.6f)))),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Row(
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Changer l'image",
-                            modifier = Modifier.size(40.dp),
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Cliquer pour changer",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Icon(Icons.Rounded.Refresh, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Changer la photo", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-            } else {
-                // État vide
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+
+                // Bouton supprimer (optionnel mais recommandé)
+                IconButton(
+                    onClick = { onImageSelected(null) },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.White.copy(0.8f), CircleShape)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Ajouter une image",
-                        tint = if (isError) FormConstants.Colors.error else FormConstants.Colors.textGrey,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Cliquer pour ajouter une photo",
-                        color = if (isError) FormConstants.Colors.error else FormConstants.Colors.textGrey,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Galerie ou Appareil photo",
-                        color = if (isError) FormConstants.Colors.error else FormConstants.Colors.textGrey.copy(alpha = 0.7f),
-                        fontSize = 12.sp
-                    )
+                    Icon(Icons.Rounded.Delete, "Supprimer", tint = Color.Red, modifier = Modifier.size(20.dp))
                 }
+            } else {
+                // État vide amélioré
+                EmptyStateView(isError)
             }
         }
 
         if (isError && imageUri == null) {
             Text(
-                text = "Cette photo est requise",
+                text = "Ce document est obligatoire",
                 color = FormConstants.Colors.error,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 6.dp, start = 4.dp)
             )
         }
     }
 
-    // Dialog de sélection
     if (showOptionsDialog) {
         ImageSourceDialog(
             onDismiss = { showOptionsDialog = false },
             onGalleryClick = {
                 showOptionsDialog = false
-                galleryLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                )
+                galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             },
             onCameraClick = {
                 showOptionsDialog = false
-                // Créer l'URI pour la caméra
-                val uri = createImageUri(context)
-                tempCameraUri = uri
-                cameraLauncher.launch(uri)
+                createImageUri(context).let {
+                    tempCameraUri = it
+                    cameraLauncher.launch(it)
+                }
             }
+        )
+    }
+}
+
+@Composable
+private fun EmptyStateView(isError: Boolean) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        val color = if (isError) FormConstants.Colors.error else FormConstants.Colors.textGrey
+        Icon(
+            imageVector = Icons.Rounded.AddAPhoto,
+            contentDescription = null,
+            tint = color.copy(alpha = 0.6f),
+            modifier = Modifier.size(42.dp)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Ajouter une photo",
+            color = color,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp
+        )
+        Text(
+            text = "Appareil photo ou galerie",
+            color = color.copy(alpha = 0.5f),
+            fontSize = 12.sp
         )
     }
 }
@@ -633,175 +652,74 @@ private fun ImageSourceDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(12.dp)
         ) {
             Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth(),
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // En-tête
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Choisir une source",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = FormConstants.Colors.primaryDark
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Fermer",
-                            tint = FormConstants.Colors.textGrey
-                        )
-                    }
-                }
-
                 Text(
-                    text = "Sélectionnez comment ajouter votre photo",
-                    fontSize = 13.sp,
-                    color = FormConstants.Colors.textGrey,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+                    text = "Source de l'image",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = FormConstants.Colors.primaryDark
+                )
+                Spacer(Modifier.height(20.dp))
+
+                SourceOptionItem(
+                    title = "Galerie",
+                    subtitle = "Choisir une photo existante",
+                    icon = Icons.Rounded.PhotoLibrary,
+                    onClick = onGalleryClick
                 )
 
-                // Bouton Galerie
-                OutlinedButton(
-                    onClick = onGalleryClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(70.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = FormConstants.Colors.primaryLight.copy(alpha = 0.1f)
-                    ),
-                    border = BorderStroke(
-                        2.dp,
-                        FormConstants.Colors.primary
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            color = FormConstants.Colors.primary,
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AddCircle,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = "Galerie",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = FormConstants.Colors.primaryDark
-                            )
-                            Text(
-                                text = "Choisir depuis la galerie",
-                                fontSize = 12.sp,
-                                color = FormConstants.Colors.textGrey
-                            )
-                        }
-                    }
+                Spacer(Modifier.height(12.dp))
+
+                SourceOptionItem(
+                    title = "Appareil photo",
+                    subtitle = "Prendre une photo maintenant",
+                    icon = Icons.Rounded.CameraAlt,
+                    onClick = onCameraClick
+                )
+
+                TextButton(onClick = onDismiss, modifier = Modifier.padding(top = 16.dp)) {
+                    Text("Annuler", color = FormConstants.Colors.textGrey)
                 }
+            }
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Bouton Appareil photo
-                OutlinedButton(
-                    onClick = onCameraClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(70.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = FormConstants.Colors.primaryLight.copy(alpha = 0.1f)
-                    ),
-                    border = BorderStroke(
-                        2.dp,
-                        FormConstants.Colors.primary
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            color = FormConstants.Colors.primary,
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = "Appareil photo",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = FormConstants.Colors.primaryDark
-                            )
-                            Text(
-                                text = "Prendre une nouvelle photo",
-                                fontSize = 12.sp,
-                                color = FormConstants.Colors.textGrey
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Bouton Annuler
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Annuler",
-                        color = FormConstants.Colors.textGrey,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+@Composable
+private fun SourceOptionItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, FormConstants.Colors.inputBorder),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8F9FA))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = FormConstants.Colors.primary,
+                modifier = Modifier.size(32.dp).background(FormConstants.Colors.primary.copy(0.1f), CircleShape).padding(6.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, color = FormConstants.Colors.textDark, fontSize = 16.sp)
+                Text(subtitle, color = FormConstants.Colors.textGrey, fontSize = 12.sp)
             }
         }
     }

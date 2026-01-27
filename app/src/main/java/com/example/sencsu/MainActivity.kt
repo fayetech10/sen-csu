@@ -19,6 +19,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme{
                 AppNavigation()
+
             }
         }
     }

@@ -22,13 +22,13 @@ data class AddAdherentUiState(
     val numeroExtrait: String = "",
     val departement: String = FormConstants.DEPARTEMENTS.firstOrNull() ?: "",
     val commune: String = "",
+    val totalCost: Int = 4500,
 
     // Photos Adhérent
     val photoUri: Uri? = null,
     val rectoUri: Uri? = null,
     val versoUri: Uri? = null,
     val uploadProgress: Float = 0f,
-
     // Liste des dépendants validés
     val dependants: List<PersonneChargeDto> = emptyList(),
 
@@ -38,9 +38,9 @@ data class AddAdherentUiState(
     val currentDependant: PersonneChargeDto = PersonneChargeDto(), // Assurez-vous d'avoir un constructeur par défaut ou vide
 
     // Photos temporaires pour le modal
-    val photo: Uri? = null,
-    val photoRecto: Uri? = null,
-    val photoVerso: Uri? = null,
+    var photo: String? = "",
+    var photoRecto: String? = "",
+    var photoVerso: String? = "",
 
 
     val isLoading: Boolean = false
@@ -60,7 +60,8 @@ data class AddAdherentUiState(
                     photoUri != null
         }
 
-    // Propriété calculée : Coût total
-    val totalCost: Int
-        get() = (dependants.size + 1) * 3500 + 1000
+    // Propriété calculée : Coût totalval totalCost: Int = 4500
+
+
+
 }

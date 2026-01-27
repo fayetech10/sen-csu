@@ -317,11 +317,11 @@ fun LocationSection(state: AddAdherentUiState, viewModel: AddAdherentViewModel) 
 @Composable
 fun PhotosSection(state: AddAdherentUiState, viewModel: AddAdherentViewModel) {
     SectionCard("Documents", Icons.Outlined.CameraAlt) {
-        ImagePickerComponent(label = "Photo d'identité", imageUri = state.photoUri, onImageSelected = viewModel::updatePhotoUri)
+        ImagePickerComponent(label = "Photo d'identité", imageUri = state.photoUri.toString(), onImageSelected = viewModel::updatePhotoUri)
         Spacer(modifier = Modifier.height(12.dp))
-        ImagePickerComponent(label = "CNI Recto", imageUri = state.rectoUri, onImageSelected = viewModel::updateRectoUri)
+        ImagePickerComponent(label = "CNI Recto", imageUri = state.rectoUri.toString(), onImageSelected = viewModel::updateRectoUri)
         Spacer(modifier = Modifier.height(12.dp))
-        ImagePickerComponent(label = "CNI Verso", imageUri = state.versoUri, onImageSelected = viewModel::updateVersoUri)
+        ImagePickerComponent(label = "CNI Verso", imageUri = state.versoUri.toString(), onImageSelected = viewModel::updateVersoUri)
     }
 }
 

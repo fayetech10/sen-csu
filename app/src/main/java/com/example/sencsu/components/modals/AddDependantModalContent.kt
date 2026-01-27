@@ -184,15 +184,15 @@ fun AddDependantModalContent(
 
         ImagePickerComponent(
             label = "Photo d'identité",
-            imageUri = state.value.photo,
-            onImageSelected = { viewModel.updateDependantPhotoUri(it  ) }
+            imageUri =currentDep.photo,
+            onImageSelected = { viewModel.updateDependantPhotoUri( it ) }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         ImagePickerComponent(
             label = "Pièce - Recto",
-            imageUri = state.value.photoRecto,
+            imageUri = currentDep.photoRecto,
             onImageSelected = { viewModel.updateDependantRectoUri(it) }
         )
 
@@ -200,7 +200,7 @@ fun AddDependantModalContent(
 
         ImagePickerComponent(
             label = "Pièce - Verso",
-            imageUri = state.value.photoVerso,
+            imageUri = currentDep.photoVerso,
             onImageSelected = { viewModel.updateDependantVersoUri(it) }
         )
 

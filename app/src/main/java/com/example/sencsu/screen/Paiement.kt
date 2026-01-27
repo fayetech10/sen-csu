@@ -1,71 +1,96 @@
 package com.example.sencsu.screen
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.google.mlkit.vision.common.InputImage
+import com.example.sencsu.domain.viewmodel.PaiementViewModel
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.ui.layout.ContentScale
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.sencsu.domain.viewmodel.PaiementViewModel
 import java.io.File
-import android.content.Context
-import androidx.core.content.FileProvider
 
 data class PaiementFormState(
     val reference: String = "",
     val photoPaiement: Uri? = null,
     val modePaiement: String = "Virement",
-    val montantTotal: String = "",
+    val montantTotal: Double? = null,
     val adherentId: Long? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String = ""
+    val errorMessage: String = "",
+    val isSuccess: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Paiement(
     adherentId: Long?,
-    montantTotal: Int?,
-    viewModel: PaiementViewModel =  hiltViewModel ()
+    montantTotal: Double?,
+    navController: NavController,
+    viewModel: PaiementViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val state = viewModel.uiState
-    val recognizer = remember { TextRecognition.getClient(TextRecognizerOptions.Builder().build()) }
-
-    // Initialisation unique
-    LaunchedEffect(Unit) {
-        viewModel.updateMontant(montantTotal?.toString() ?: "")
+    val recognizer = remember {
+        TextRecognition.getClient(TextRecognizerOptions.Builder().build())
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) state.photoPaiement?.let { viewModel.processImage(it, context, recognizer) }
+    // Initialiser les données du formulaire avec les paramètres reçus
+    LaunchedEffect(adherentId, montantTotal) {
+        viewModel.initializeFormData(adherentId, montantTotal)
+    }
+    LaunchedEffect(adherentId) {
+        adherentId?.let {
+            viewModel.loadAdherent(it)
+        }
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+
+    // Redirection après succès du paiement
+    LaunchedEffect(state.isSuccess) {
+        if (state.isSuccess) {
+            navController.navigate("dashboard") {
+                popUpTo("paiement") { inclusive = true }
+            }
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            state.photoPaiement?.let { uri ->
+                viewModel.processImage(uri, context, recognizer)
+            }
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
         uri?.let {
             viewModel.setPhoto(it)
             viewModel.processImage(it, context, recognizer)
@@ -73,7 +98,11 @@ fun Paiement(
     }
 
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Paiement Cotisation") }) }
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Paiement Cotisation") }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -84,7 +113,7 @@ fun Paiement(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Section Photo avec état vide/chargé
+            // Section Photo
             PaymentPhotoSection(
                 photoUri = state.photoPaiement,
                 isLoading = state.isLoading,
@@ -101,40 +130,102 @@ fun Paiement(
                 onGalleryClick = { galleryLauncher.launch("image/*") }
             )
 
-            // Formulaire
+            // Affichage des erreurs
+            if (state.errorMessage.isNotEmpty()) {
+                ErrorMessageCard(message = state.errorMessage)
+            }
+
+            // Champ Référence
             OutlinedTextField(
                 value = state.reference,
                 onValueChange = viewModel::updateReference,
-                label = { Text("Référence (détectée ou manuelle) ${state.reference.ifBlank { "(optionnel)" }}" ) },
+                label = {
+                    Text(
+                        "Référence ${if (state.reference.isBlank()) "(détectée ou manuelle)" else "(validée)"}"
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
-                prefix = { Icon(Icons.Default.Info, null) },
-                isError = state.reference.isEmpty()
+                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                isError = state.reference.isBlank(),
+                singleLine = true
             )
 
+            // Dropdown Mode de paiement
             ModePaiementDropdown(
                 selectedMode = state.modePaiement,
                 onModeSelected = viewModel::updateMode
             )
 
+            // Champ Montant (lecture seule, vient du formulaire d'ajout adhérent)
             OutlinedTextField(
-                value = state.montantTotal,
-                onValueChange = viewModel::updateMontant,
+                value = montantTotal.toString(),
+                onValueChange = {},
                 label = { Text("Montant (FCFA)") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                readOnly = montantTotal != null
+                readOnly = true,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
 
+            // Bouton de confirmation
             Button(
-                onClick = { /* Appel API */ },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                enabled = state.reference.isNotBlank() && state.photoPaiement != null
+                onClick = { viewModel.addPaiement() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = state.reference.isNotBlank() &&
+                        state.photoPaiement != null &&
+                        !state.isLoading
             ) {
-                Text("Confirmer le paiement")
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    if (state.isLoading) "Confirmation en cours..." else "Confirmer le paiement"
+                )
             }
         }
     }
 }
+
+@Composable
+private fun ErrorMessageCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = "Erreur",
+                tint = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
 @Composable
 fun PaymentPhotoSection(
     photoUri: Uri?,
@@ -146,36 +237,55 @@ fun PaymentPhotoSection(
             .fillMaxWidth()
             .height(200.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             if (photoUri != null) {
                 AsyncImage(
                     model = photoUri,
-                    contentDescription = null,
+                    contentDescription = "Photo de justificatif",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                // Bouton pour supprimer la photo
+
                 IconButton(
                     onClick = onRemove,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.errorContainer,
+                            CircleShape
+                        )
                 ) {
-                    Icon(Icons.Default.Clear, contentDescription = "Supprimer", tint = MaterialTheme.colorScheme.onErrorContainer)
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Supprimer la photo",
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Camera, contentDescription = null, modifier = Modifier.size(48.dp))
-                    Text("Aucun justificatif", style = MaterialTheme.typography.labelLarge)
+                    Icon(
+                        Icons.Default.Camera,
+                        contentDescription = "Caméra",
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Aucun justificatif",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
 
             if (isLoading) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = Color.White)
@@ -184,6 +294,7 @@ fun PaymentPhotoSection(
         }
     }
 }
+
 @Composable
 fun PhotoActionsRow(
     onCameraClick: () -> Unit,
@@ -195,7 +306,9 @@ fun PhotoActionsRow(
     ) {
         Button(
             onClick = onCameraClick,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.Camera, contentDescription = null)
@@ -204,13 +317,16 @@ fun PhotoActionsRow(
         }
         FilledTonalButton(
             onClick = onGalleryClick,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Galerie")
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModePaiementDropdown(
@@ -230,9 +346,14 @@ fun ModePaiementDropdown(
             onValueChange = {},
             readOnly = true,
             label = { Text("Moyen de paiement") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
+            singleLine = true
         )
 
         ExposedDropdownMenu(
@@ -252,18 +373,16 @@ fun ModePaiementDropdown(
         }
     }
 }
+
 fun createTempPictureUri(context: Context): Uri {
-    // Crée un fichier temporaire dans le cache de l'application
     val tempFile = File.createTempFile(
         "payment_proof_",
         ".jpg",
         context.cacheDir
     ).apply {
-        createNewFile()
-        deleteOnExit() // Supprime le fichier quand l'app se ferme (optionnel)
+        deleteOnExit()
     }
 
-    // Retourne l'URI via le FileProvider pour que la caméra puisse écrire dedans
     return FileProvider.getUriForFile(
         context,
         "${context.packageName}.fileprovider",
