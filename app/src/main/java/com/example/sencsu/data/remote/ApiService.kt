@@ -25,6 +25,17 @@ interface ApiService {
         @Body adherent: AdherentDto
     ): CreateAdherentResponse
 
+
+    @GET("/api/paiements/adherent/{id}")
+    suspend fun getPaiementsByAdherentId(@Path("id") adherentId: Long): List<PaiementDto>
+
+    @GET("/api/cotisation/adherent/{id}")
+    suspend fun getCotisationByAdherentId(
+        @Path("id")
+        adherentId: Long
+    ): List<CotisationDto>
+
+
     @Multipart
     @POST("/api/files/upload")
     suspend fun uploadFile(

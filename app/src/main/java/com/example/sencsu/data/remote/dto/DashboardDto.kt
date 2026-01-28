@@ -3,11 +3,20 @@ package com.example.sencsu.data.remote.dto
 import androidx.compose.ui.graphics.Color
 //import com.google.gson.annotations.SerializedName
 import com.google.gson.annotations.SerializedName
+import java.time.LocalDate
 
 // DTO pour la réponse complète
 data class ApiResponse<T>(
     val success: Boolean,
     val data: T
+)
+
+data class CotisationDto(
+    val id: Long? = null,
+    val dateDebut: String? = "",
+    val dateFin: String? = "",
+    val dateSoumission: String? = "",
+    val adherentId: Long? = null
 )
 
 data class DashboardResponseDto(
@@ -128,7 +137,7 @@ data class AgentDto(
     val name: String? = "",
 
     @SerializedName("prenom")
-    val prenoms: String? = "",
+    val prenom: String? = "",
 
     val email: String? = "",
 

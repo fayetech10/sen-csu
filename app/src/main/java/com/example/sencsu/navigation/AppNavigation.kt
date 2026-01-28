@@ -1,6 +1,8 @@
 package com.example.sencsu.navigation
 
 import AddAdherentScreen
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,6 +18,7 @@ import com.example.sencsu.screen.*
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(viewModel: AppNavigationViewModel = hiltViewModel()) {
     val navController = rememberNavController()

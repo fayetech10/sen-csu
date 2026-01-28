@@ -5,8 +5,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sencsu.data.remote.dto.AdherentDto
+import com.example.sencsu.data.remote.dto.CotisationDto
+import com.example.sencsu.data.remote.dto.PaiementDto
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
 import com.example.sencsu.data.repository.AdherentRepository
+import com.example.sencsu.data.repository.Cotisationepository
+import com.example.sencsu.data.repository.PaiementRepository
 import com.example.sencsu.data.repository.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,6 +21,8 @@ data class AdherentDetailsState(
     val isLoading: Boolean = false,
     val adherent: AdherentDto? = null,
     val error: String? = null,
+    val paiements: List<PaiementDto> = emptyList(),
+    val cotisations: List<CotisationDto> = emptyList(),
     // Gestion des dialogues
     val showDeleteAdherentDialog: Boolean = false,
     val personToDelete: PersonneChargeDto? = null, // Si non null, affiche le dialogue de suppression
@@ -36,7 +42,9 @@ sealed class DetailsUiEvent {
 class AdherentDetailsViewModel @Inject constructor(
     private val adherentRepository: AdherentRepository,
     savedStateHandle: SavedStateHandle,
-    val sessionManager: SessionManager
+    val sessionManager: SessionManager,
+    private val paiementRepository: PaiementRepository,
+    private val cotisationRepository: Cotisationepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdherentDetailsState())
@@ -60,12 +68,67 @@ class AdherentDetailsViewModel @Inject constructor(
         }
     }
 
+    fun loadCotisationsByIdadherent(){
+        val adherentId = adherentIdStr?.toLongOrNull() ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                val result = cotisationRepository.getCotisationByIdahderent(adherentId)
+                _state.update { it.copy(
+                    cotisations = result,
+                    isLoading = false
+                ) }
+                Log.d("AdherentDetailsViewModel", "Les cotisations récupérés : ${result}")
+
+            } catch (e: Exception){
+                // 4. Gérer l'erreur
+                Log.e("AdherentDetailsViewModel", "Erreur : ${e.message}")
+                _state.update { it.copy(
+                    isLoading = false,
+                    error = "Impossible de charger les les cotisations"
+                )}
+
+            }
+        }
+
+    }
+    fun loadPaiementByIdadherent() {
+        val adherentId = adherentIdStr?.toLongOrNull() ?: return
+
+        viewModelScope.launch {
+            // 1. Démarrer le chargement
+            _state.update { it.copy(isLoading = true, error = null) }
+
+            try {
+                // 2. Appel au repository
+                val result = paiementRepository.getPaiementsByAdherentId(adherentId)
+
+                // 3. Mettre à jour le state avec les données et arrêter le loading
+                _state.update { it.copy(
+                    paiements = result, // Assure-toi d'avoir ce champ dans ton State class
+                    isLoading = false
+                )}
+
+                Log.d("AdherentDetailsViewModel", "Paiements récupérés : ${result}")
+
+            } catch (e: Exception) {
+                // 4. Gérer l'erreur
+                Log.e("AdherentDetailsViewModel", "Erreur : ${e.message}")
+                _state.update { it.copy(
+                    isLoading = false,
+                    error = "Impossible de charger les paiements"
+                )}
+            }
+        }
+    }
     private fun fetchAdherentDetails(id: Long) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             adherentRepository.getAdherentById(id).fold(
                 onSuccess = { adherent ->
                     _state.update { it.copy(isLoading = false, adherent = adherent) }
+                    loadPaiementByIdadherent()
+                    loadCotisationsByIdadherent()
                 },
                 onFailure = { error ->
                     Log.e("DetailsVM", "Erreur fetch", error)

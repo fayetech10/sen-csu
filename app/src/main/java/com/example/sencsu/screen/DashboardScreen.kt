@@ -119,7 +119,7 @@ private fun DashboardTopBar(
             Column {
                 Text("Tableau de bord", style = MaterialTheme.typography.titleSmall, color = Color.Gray)
                 Text(
-                    text = if (agent != null) "Salut, ${agent.prenoms} 👋" else "Chargement...",
+                    text = if (agent != null) "Salut, ${agent.prenom} 👋" else "Chargement...",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -139,7 +139,7 @@ private fun DashboardTopBar(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    agent?.prenoms?.take(1) ?: "?",
+                    agent?.prenom?.take(1) ?: "?",
                     color = FormConstants.Colors.primary,
                     fontWeight = FontWeight.Bold
                 )

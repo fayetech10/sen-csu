@@ -185,13 +185,28 @@ class AddAdherentViewModel @Inject constructor(
 
     // --- Gestion des erreurs ---
     private suspend fun sendError(exception: Exception) {
+
         val errorMessage = when (exception) {
-            is HttpException -> "Erreur serveur (${exception.code()})"
+
+            is HttpException -> {
+                try {
+                    exception.response()
+                        ?.errorBody()
+                        ?.string()
+                        ?: "Erreur serveur (${exception.code()})"
+                } catch (e: Exception) {
+                    "Erreur serveur (${exception.code()})"
+                }
+            }
+
             is IOException -> "Problème de connexion internet."
+
             else -> exception.localizedMessage ?: "Une erreur est survenue."
         }
+
         _uiEvent.send(AddAdherentUiEvent.ShowSnackbar(errorMessage))
     }
+
 
     // --- Gestion du Modal Personne à Charge ---
     fun showAddDependantModal() {
