@@ -47,8 +47,12 @@ data class AdherentDto(
     val prenoms: String? = "", // Peut être null parfois
 
     val nom: String? = "",
+    val flagUrl: String = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Flag_of_Senegal.svg/1200px-Flag_of_Senegal.svg.png",
+
+    val logoUrl: String = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Coat_of_arms_of_Senegal.svg/1024px-Coat_of_arms_of_Senegal.svg.png",
 
     val adresse: String? = "",
+    val qrCodeUrl: String? = " \"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Flag_of_Senegal.svg/1200px-Flag_of_Senegal.svg.png\"",
 
     val lieuNaissance: String? = "",
 
@@ -57,6 +61,7 @@ data class AdherentDto(
     val createdAt: String? = "",
 
     val sexe: String? = "M",
+    val numeroCarte: String? = "",
 
     val dateNaissance: String? = "",
     val lieuDeNaissance: String? = "",
@@ -67,6 +72,7 @@ data class AdherentDto(
     val situationM: String? = null,
 
     val whatsapp: String? = "",
+    val codeBarres: String = "01443720",
 
     val secteurActivite: String? = null, // Souvent null ou vide
 
@@ -93,6 +99,7 @@ data class AdherentDto(
     val regime: String? ="Contributif",
 
     val photoRecto: String? = null,
+    val matricule: String? = "ZUYYYB",
 
     val photoVerso: String? = null,
 

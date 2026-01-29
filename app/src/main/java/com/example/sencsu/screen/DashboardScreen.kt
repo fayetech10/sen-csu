@@ -198,8 +198,7 @@ private fun DashboardContent(
 
         item {
             RecentActivitiesSection(
-                adherents = adherents.take(5),
-                onAdherentClick = { id -> navController.navigate("adherent_details/$id") },
+                adherents = adherents.sortedByDescending { it.createdAt }.take(5),                onAdherentClick = { id -> navController.navigate("adherent_details/$id") },
                 onSeeAllClick = { navController.navigate("liste_adherents") },
                 sessionManager = sessionManager
             )

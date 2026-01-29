@@ -103,4 +103,8 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("io.coil-kt:coil-compose:2.4.0")
 
+    dependencies {
+        implementation("com.google.zxing:core:3.5.2")
+    }
+
 }
