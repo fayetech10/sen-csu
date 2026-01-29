@@ -36,6 +36,7 @@ import com.example.sencsu.data.remote.dto.PaiementDto
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
 import com.example.sencsu.data.repository.SessionManager
 import com.example.sencsu.domain.viewmodel.AdherentDetailsViewModel
+import com.example.sencsu.domain.viewmodel.DetailsUiEvent
 
 // 🎨 Palette de couleurs rafraîchie
 private val AppBackground = Color(0xFFFBFDFF)
@@ -54,11 +55,21 @@ fun AdherentDetailsScreen(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-
-
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is DetailsUiEvent.AdherentDeleted -> onNavigateBack()
+                is DetailsUiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = AppBackground,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -73,8 +84,15 @@ fun AdherentDetailsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.showDeleteAdherentConfirmation() }) {
-                        Icon(Icons.Rounded.DeleteOutline, "Supprimer", tint = Color.Red.copy(alpha = 0.7f))
+                    IconButton(
+                        enabled = !state.isLoading,
+                        onClick = { viewModel.showDeleteAdherentConfirmation() }
+                    ) {
+                        Icon(
+                            Icons.Rounded.DeleteOutline,
+                            contentDescription = "Supprimer",
+                            tint = Color.Red.copy(alpha = 0.7f)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = AppBackground)
@@ -91,6 +109,26 @@ fun AdherentDetailsScreen(
             )
         }
     ) { padding ->
+
+        // --- Dialogues de confirmation (Hors du flux TopAppBar) ---
+        if (state.showDeleteAdherentDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.cancelDeleteAdherent() },
+                title = { Text("Confirmation") },
+                text = { Text("Voulez-vous vraiment supprimer cet adhérent ?") },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.confirmDeleteAdherent() }) {
+                        Text("Supprimer", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.cancelDeleteAdherent() }) {
+                        Text("Annuler")
+                    }
+                }
+            )
+        }
+
         PullToRefreshBox(
             isRefreshing = state.isLoading,
             onRefresh = { viewModel.refresh() },
@@ -102,33 +140,19 @@ fun AdherentDetailsScreen(
             ) {
                 state.adherent?.let { adherent ->
                     item { ProfileSection(adherent, viewModel.sessionManager, viewModel) }
-
-                    // La carte financière (Paiements)
-                    item { FinanceCard(adherent, state.paiements) }
-
-                    // NOUVEAU : La carte de validité (Dates de cotisations)
-                    item { CotisationValidityCard(state.cotisations) }
-
-                    item { DocumentsSection(adherent, viewModel.sessionManager, viewModel) }
-
-                    item { BeneficiariesList(adherent, viewModel.sessionManager, viewModel) }
-
                     item { AdherentInfoCard(adherent) }
-
+                    item { DocumentsSection(adherent, viewModel.sessionManager, viewModel) }
+                    item { FinanceCard(adherent, state.paiements) }
+                    item { CotisationValidityCard(state.cotisations) }
+                    item { BeneficiariesList(adherent, viewModel.sessionManager, viewModel) }
                 }
             }
         }
     }
-
-    // Garder tes modales existantes ici (AddPersonneChargeModal, etc.)
 }
 
 @Composable
-fun ProfileSection(
-    adherent: AdherentDto,
-    sessionManager: SessionManager,
-    viewModel: AdherentDetailsViewModel
-) {
+fun ProfileSection(adherent: AdherentDto, sessionManager: SessionManager, viewModel: AdherentDetailsViewModel) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -138,7 +162,7 @@ fun ProfileSection(
                 filename = adherent.photo,
                 sessionManager = sessionManager,
                 modifier = Modifier
-                    .size(110.dp)
+                    .size(100.dp)
                     .clip(CircleShape)
                     .background(BrandBlue.copy(0.1f))
                     .clickable { viewModel.openImagePreview(adherent.photo) },
@@ -153,35 +177,9 @@ fun ProfileSection(
                 Icon(Icons.Rounded.Check, null, tint = Color.White, modifier = Modifier.padding(6.dp))
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "${adherent.prenoms} ${adherent.nom}",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = TextMain
-        )
-
-        Text(
-            adherent.secteurActivite?.uppercase() ?: "PARTICULIER",
-            style = MaterialTheme.typography.labelLarge,
-            color = BrandBlue,
-            letterSpacing = 1.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Quick Info Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            QuickInfoItem(Icons.Rounded.Phone, "Appel", BrandBlue)
-            QuickInfoItem(Icons.Rounded.Message, "WhatsApp", StatusGreen)
-            QuickInfoItem(Icons.Rounded.LocationOn, "Map", StatusOrange)
-        }
+        Text("${adherent.prenoms} ${adherent.nom}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = TextMain)
+        Text(adherent.secteurActivite?.uppercase() ?: "PARTICULIER", style = MaterialTheme.typography.labelLarge, color = BrandBlue, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

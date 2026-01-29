@@ -43,8 +43,6 @@ class ListeAdherentViewModel @Inject constructor(
     val state: StateFlow<ListeAdherentState> = _state.asStateFlow()
 
     init {
-        // Le ViewModel n'a plus besoin de connaître l'état du token.
-        // L'intercepteur s'en charge de manière transparente.
         fetchAdherents()
     }
 
@@ -74,7 +72,7 @@ class ListeAdherentViewModel @Inject constructor(
         }
     }
 
-    fun retry() {
+    fun refresh() {
         fetchAdherents()
     }
 }

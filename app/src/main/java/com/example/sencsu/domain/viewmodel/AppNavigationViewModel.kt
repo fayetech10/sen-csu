@@ -10,7 +10,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AppNavigationViewModel @Inject constructor(
-    private val sessionManager: SessionManager
+     val sessionManager: SessionManager
 ) : ViewModel() {
 
     /**

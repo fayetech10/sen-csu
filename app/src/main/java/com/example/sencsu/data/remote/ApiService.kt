@@ -25,7 +25,6 @@ interface ApiService {
         @Body adherent: AdherentDto
     ): CreateAdherentResponse
 
-
     @GET("/api/paiements/adherent/{id}")
     suspend fun getPaiementsByAdherentId(@Path("id") adherentId: Long): List<PaiementDto>
 

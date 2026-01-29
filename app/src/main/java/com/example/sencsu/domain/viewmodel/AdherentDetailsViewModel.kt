@@ -10,6 +10,7 @@ import com.example.sencsu.data.remote.dto.PaiementDto
 import com.example.sencsu.data.remote.dto.PersonneChargeDto
 import com.example.sencsu.data.repository.AdherentRepository
 import com.example.sencsu.data.repository.Cotisationepository
+import com.example.sencsu.data.repository.DashboardRepository
 import com.example.sencsu.data.repository.PaiementRepository
 import com.example.sencsu.data.repository.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,13 +24,10 @@ data class AdherentDetailsState(
     val error: String? = null,
     val paiements: List<PaiementDto> = emptyList(),
     val cotisations: List<CotisationDto> = emptyList(),
-    // Gestion des dialogues
     val showDeleteAdherentDialog: Boolean = false,
-    val personToDelete: PersonneChargeDto? = null, // Si non null, affiche le dialogue de suppression
+    val personToDelete: PersonneChargeDto? = null,
     val showAddPersonneModal: Boolean = false,
-    // Gestion de l'image plein écran
     val selectedImageUrl: String? = null,
-    // Données formulaire
     val newPersonne: PersonneChargeDto = PersonneChargeDto()
 )
 
@@ -44,7 +42,8 @@ class AdherentDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     val sessionManager: SessionManager,
     private val paiementRepository: PaiementRepository,
-    private val cotisationRepository: Cotisationepository
+    private val cotisationRepository: Cotisationepository,
+    private val dashdoardRepository: DashboardRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdherentDetailsState())
@@ -64,63 +63,10 @@ class AdherentDetailsViewModel @Inject constructor(
         if (id != null) {
             fetchAdherentDetails(id)
         } else {
-            _state.update { it.copy(error = "Identifiant d'adhérent invalide.") }
+            _state.update { it.copy(error = "Identifiant invalide.") }
         }
     }
 
-    fun loadCotisationsByIdadherent(){
-        val adherentId = adherentIdStr?.toLongOrNull() ?: return
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            try {
-                val result = cotisationRepository.getCotisationByIdahderent(adherentId)
-                _state.update { it.copy(
-                    cotisations = result,
-                    isLoading = false
-                ) }
-                Log.d("AdherentDetailsViewModel", "Les cotisations récupérés : ${result}")
-
-            } catch (e: Exception){
-                // 4. Gérer l'erreur
-                Log.e("AdherentDetailsViewModel", "Erreur : ${e.message}")
-                _state.update { it.copy(
-                    isLoading = false,
-                    error = "Impossible de charger les les cotisations"
-                )}
-
-            }
-        }
-
-    }
-    fun loadPaiementByIdadherent() {
-        val adherentId = adherentIdStr?.toLongOrNull() ?: return
-
-        viewModelScope.launch {
-            // 1. Démarrer le chargement
-            _state.update { it.copy(isLoading = true, error = null) }
-
-            try {
-                // 2. Appel au repository
-                val result = paiementRepository.getPaiementsByAdherentId(adherentId)
-
-                // 3. Mettre à jour le state avec les données et arrêter le loading
-                _state.update { it.copy(
-                    paiements = result, // Assure-toi d'avoir ce champ dans ton State class
-                    isLoading = false
-                )}
-
-                Log.d("AdherentDetailsViewModel", "Paiements récupérés : ${result}")
-
-            } catch (e: Exception) {
-                // 4. Gérer l'erreur
-                Log.e("AdherentDetailsViewModel", "Erreur : ${e.message}")
-                _state.update { it.copy(
-                    isLoading = false,
-                    error = "Impossible de charger les paiements"
-                )}
-            }
-        }
-    }
     private fun fetchAdherentDetails(id: Long) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
@@ -131,20 +77,37 @@ class AdherentDetailsViewModel @Inject constructor(
                     loadCotisationsByIdadherent()
                 },
                 onFailure = { error ->
-                    Log.e("DetailsVM", "Erreur fetch", error)
-                    _state.update { it.copy(isLoading = false, error = error.message ?: "Erreur inconnue") }
+                    _state.update { it.copy(isLoading = false, error = error.message ?: "Erreur réseau") }
                 }
             )
         }
     }
 
-    // --- Gestion Images ---
-    fun openImagePreview(url: String?) {
-        if (!url.isNullOrBlank()) _state.update { it.copy(selectedImageUrl = url) }
+    fun loadCotisationsByIdadherent() {
+        val id = adherentIdStr?.toLongOrNull() ?: return
+        viewModelScope.launch {
+            try {
+                val result = cotisationRepository.getCotisationByIdahderent(id)
+                _state.update { it.copy(cotisations = result) }
+            } catch (e: Exception) {
+                Log.e("AdherentVM", "Erreur cotisations", e)
+            }
+        }
     }
-    fun closeImagePreview() = _state.update { it.copy(selectedImageUrl = null) }
 
-    // --- Suppression Adhérent ---
+    fun loadPaiementByIdadherent() {
+        val id = adherentIdStr?.toLongOrNull() ?: return
+        viewModelScope.launch {
+            try {
+                val result = paiementRepository.getPaiementsByAdherentId(id)
+                _state.update { it.copy(paiements = result) }
+            } catch (e: Exception) {
+                Log.e("AdherentVM", "Erreur paiements", e)
+            }
+        }
+    }
+
+    // --- Actions ---
     fun showDeleteAdherentConfirmation() = _state.update { it.copy(showDeleteAdherentDialog = true) }
     fun cancelDeleteAdherent() = _state.update { it.copy(showDeleteAdherentDialog = false) }
 
@@ -154,35 +117,45 @@ class AdherentDetailsViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, showDeleteAdherentDialog = false) }
             try {
                 adherentRepository.deleteAdherent(id)
+                // Mise à jour silencieuse du dashboard en arrière-plan
+                launch {
+                   val  reuslt = dashdoardRepository.getDashboardData()
+                    Log.d("Adherent", "Adherent : ${reuslt.data.size}")
+                }
+
                 _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Adhérent supprimé"))
                 _uiEvent.emit(DetailsUiEvent.AdherentDeleted)
+
             } catch (e: Exception) {
+                Log.e("Adherent",e.message.toString())
                 _state.update { it.copy(isLoading = false) }
                 _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Erreur: ${e.message}"))
             }
         }
     }
 
-    // --- Suppression Personne à Charge ---
     fun showDeletePersonneConfirmation(personne: PersonneChargeDto) = _state.update { it.copy(personToDelete = personne) }
     fun cancelDeletePersonne() = _state.update { it.copy(personToDelete = null) }
 
     fun confirmDeletePersonne() {
-        val personneId = _state.value.personToDelete?.id?: return
+        val personneId = _state.value.personToDelete?.id ?: return
         viewModelScope.launch {
             try {
                 adherentRepository.deletePersonneCharge(personneId)
-                _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Personne supprimée"))
-                // On recharge les données pour mettre à jour la liste
+                _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Bénéficiaire supprimé"))
                 refresh()
             } catch (e: Exception) {
-                _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Erreur suppression: ${e.message}"))
+                _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Erreur: ${e.message}"))
             }
             cancelDeletePersonne()
         }
     }
 
-    // --- Ajout Personne ---
+    fun openImagePreview(url: String?) {
+        if (!url.isNullOrBlank()) _state.update { it.copy(selectedImageUrl = url) }
+    }
+    fun closeImagePreview() = _state.update { it.copy(selectedImageUrl = null) }
+
     fun onAddPersonneClicked() = _state.update { it.copy(showAddPersonneModal = true, newPersonne = PersonneChargeDto()) }
     fun onDismissAddPersonneModal() = _state.update { it.copy(showAddPersonneModal = false) }
     fun onNewPersonneChange(p: PersonneChargeDto) = _state.update { it.copy(newPersonne = p) }
@@ -196,7 +169,7 @@ class AdherentDetailsViewModel @Inject constructor(
                 onDismissAddPersonneModal()
                 refresh()
             } catch (e: Exception) {
-                _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Erreur ajout: ${e.message}"))
+                _uiEvent.emit(DetailsUiEvent.ShowSnackbar("Erreur: ${e.message}"))
             }
         }
     }

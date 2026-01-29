@@ -53,6 +53,11 @@ fun DashboardScreen(
         }
     }
 
+// Option A : Rafraîchir quand on arrive sur l'écran
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = SurfaceLight,
@@ -89,6 +94,7 @@ fun DashboardScreen(
                     state.isLoading && state.data == null -> LoadingDashboardSkeleton()
                     state.error != null -> ErrorState(state.error!!) { viewModel.refresh() }
                     state.data != null -> {
+
                         DashboardContent(
                             data = state.data!!,
                             navController = navController,
@@ -158,6 +164,7 @@ private fun DashboardContent(
     val totalAmount = adherents.sumOf { it.montantTotal!!}
     val totalDeps = adherents.sumOf { it.personnesCharge.size }
 
+    
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),

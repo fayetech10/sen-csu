@@ -16,6 +16,8 @@ class AdherentRepository @Inject constructor(
 ) {
 
 
+
+
     suspend fun getAdherentById(id: Long): Result<AdherentDto> {
         return try {
             val response = apiService.getAdherentById(id)

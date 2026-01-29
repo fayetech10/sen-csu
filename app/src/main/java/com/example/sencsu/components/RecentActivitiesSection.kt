@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,27 +28,29 @@ import com.example.sencsu.components.ModernAdherentRow
 import com.example.sencsu.data.remote.dto.AdherentDto
 import com.example.sencsu.data.remote.dto.FormConstants
 import com.example.sencsu.data.repository.SessionManager // Import de SessionManager
+import com.example.sencsu.theme.AppColors.BrandBlue
 import kotlinx.coroutines.delay
-
 @Composable
 fun RecentActivitiesSection(
     adherents: List<AdherentDto>,
     onAdherentClick: (Long) -> Unit,
     onSeeAllClick: () -> Unit,
-    sessionManager: SessionManager, // Ajout de SessionManager en paramètre
+    sessionManager: SessionManager,
     modifier: Modifier = Modifier
 ) {
+    // 1. On utilise 'adherents' comme clé pour que l'état d'animation se réinitialise
     val itemsToShow = remember(adherents) { adherents.take(5) }
-    val visibleStates = remember {
+
+    // 2. On lie la liste d'états à 'itemsToShow'
+    val visibleStates = remember(itemsToShow) {
         mutableStateListOf<Boolean>().apply {
             repeat(itemsToShow.size) { add(false) }
         }
     }
 
     LaunchedEffect(itemsToShow) {
-        visibleStates.fill(false)
         itemsToShow.indices.forEach { index ->
-            delay(index * 100L) 
+            delay(index * 80L) // Un peu plus rapide pour la fluidité
             if (index < visibleStates.size) {
                 visibleStates[index] = true
             }
@@ -55,29 +58,18 @@ fun RecentActivitiesSection(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
+        // ... (Header identique)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text("Activités récentes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
             Text(
-                text = "Activités récentes",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = FormConstants.Colors.textDark,
-                    fontSize = 20.sp
-                )
-            )
-            Text(
-                text = "Voir tout",
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable { onSeeAllClick() }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                color = FormConstants.Colors.primary,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                "Voir tout",
+                modifier = Modifier.clip(CircleShape).clickable { onSeeAllClick() }.padding(8.dp),
+                color = BrandBlue, // Remplace par ta couleur
+                style = MaterialTheme.typography.labelLarge
             )
         }
 
@@ -85,38 +77,33 @@ fun RecentActivitiesSection(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
             shape = RoundedCornerShape(28.dp),
-            shadowElevation = 2.dp,
-            tonalElevation = 1.dp
+            shadowElevation = 2.dp
         ) {
             if (itemsToShow.isEmpty()) {
-                Text("Pas de Donnée")
+                Box(Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("Aucun adhérent récent", color = Color.Gray)
+                }
             } else {
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     itemsToShow.forEachIndexed { index, adherent ->
+                        // L'animation se déclenchera à chaque fois que la liste change
                         AnimatedVisibility(
                             visible = visibleStates.getOrElse(index) { false },
-                            enter = fadeIn(animationSpec = tween(300)) +
-                                    slideInVertically(
-                                        initialOffsetY = { 40 },
-                                        animationSpec = tween(400, easing = FastOutSlowInEasing)
-                                    )
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
                         ) {
                             Column {
                                 ModernAdherentRow(
                                     adherent = adherent,
-                                    onClick = {
-                                        adherent.id?.let {
-                                            onAdherentClick(it)
-                                        }
-                                    },
-                                    sessionManager = sessionManager, // Passage du SessionManager
+                                    onClick = { adherent.id?.let { onAdherentClick(it) } },
+                                    sessionManager = sessionManager
                                 )
 
                                 if (index < itemsToShow.size - 1) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(horizontal = 24.dp),
-                                        thickness = 0.8.dp,
-                                        color = FormConstants.Colors.background.copy(alpha = 0.5f)
+                                        thickness = 0.5.dp,
+                                        color = Color.LightGray.copy(alpha = 0.3f)
                                     )
                                 }
                             }

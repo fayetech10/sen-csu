@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.sencsu.data.repository.SessionManager
 import com.example.sencsu.domain.viewmodel.AppNavigationViewModel
 import com.example.sencsu.screen.*
 import kotlinx.coroutines.flow.launchIn
@@ -20,8 +21,13 @@ import kotlinx.coroutines.flow.onEach
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavigation(viewModel: AppNavigationViewModel = hiltViewModel()) {
+fun AppNavigation(
+
+    viewModel: AppNavigationViewModel = hiltViewModel()) {
     val navController = rememberNavController()
+    val sessionManager = viewModel.sessionManager
+
+
 
     // Récupération de l'agentId depuis le ViewModel
     val agentId by viewModel.agentId.collectAsState()
@@ -83,8 +89,8 @@ fun AppNavigation(viewModel: AppNavigationViewModel = hiltViewModel()) {
             ListeAdherentScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onAdherentClick = { adherentId ->
-                    navController.navigate("adherent_details/$adherentId")
-                }
+                    navController.navigate("adherent_details/$adherentId")},
+                sessionManager = sessionManager
             )
         }
 
