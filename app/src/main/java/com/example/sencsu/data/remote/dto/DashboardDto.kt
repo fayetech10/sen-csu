@@ -100,8 +100,11 @@ data class AdherentDto(
 
     val photoRecto: String? = null,
     val matricule: String? = "ZUYYYB",
+    val codeBar: String? = "01443720",
 
     val photoVerso: String? = null,
+    val actif: Boolean? = true,
+
 
     val clientUUID: String? = "",
 
@@ -140,7 +143,7 @@ data class PersonneChargeDto(
 // DTO pour l'agent
 data class AgentDto(
     val id: Long? = null,
-
+    val actif: Boolean? = true,
     val name: String? = "",
 
     @SerializedName("prenom")

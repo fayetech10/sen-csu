@@ -41,12 +41,15 @@ import com.example.sencsu.domain.viewmodel.DetailsUiEvent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.healthcard.ui.components.HealthInsuranceCardWithFlip
 import com.example.sencsu.components.cartes.CarteSanteUniverselle
 import com.example.sencsu.configs.ApiConfig
-
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 
 // 🎨 Nouvelle palette de couleurs moderne
@@ -246,10 +249,11 @@ private fun AdherentContent(
     ) {
         item { ProfileHeader(adherent, sessionManager, viewModel) }
 //        item { HealthInsuranceCardWithFlip(adherent) }
-        item { HealthInsuranceCard(
-            data = adherent,
-            sessionManager = sessionManager
-        ) }
+        item {
+            HealthInsuranceCard(
+                data = adherent,
+                sessionManager = sessionManager)
+            }
         item { QuickStatsRow(adherent, paiements) }
         item { PersonalInfoCard(adherent) }
         item { DocumentsGrid(adherent, sessionManager, viewModel) }
@@ -286,12 +290,14 @@ private fun ProfileHeader(
                     filename = adherent.photo,
                     sessionManager = sessionManager,
                     modifier = Modifier
-                        .size(100.dp)
+                        .fillMaxWidth()
+                        .height(400.dp)
                         .clip(CircleShape)
                         .background(BrandPrimary.copy(alpha = 0.1f))
                         .clickable { viewModel.openImagePreview(adherent.photo) },
                     contentScale = ContentScale.Crop
                 )
+
 
                 // Badge de statut
                 Surface(
@@ -313,7 +319,7 @@ private fun ProfileHeader(
 
             // Nom et secteur
             Text(
-                "${adherent.prenoms} ${adherent.nom}",
+                "${adherent.prenoms?.uppercase()} ${adherent.nom?.uppercase()}",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -552,7 +558,7 @@ private fun PersonalInfoCard(adherent: AdherentDto) {
 
 @Composable
 private fun InfoRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String
 ) {
@@ -816,14 +822,14 @@ private fun CotisationTimelineCard(cotisations: List<CotisationDto>) {
 
     val (progress, daysRemaining) = remember(activeCotisation) {
         try {
-            val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-            val start = java.time.LocalDate.parse(activeCotisation.dateDebut, formatter)
-            val end = java.time.LocalDate.parse(activeCotisation.dateFin, formatter)
-            val now = java.time.LocalDate.now()
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val start = LocalDate.parse(activeCotisation.dateDebut, formatter)
+            val end = LocalDate.parse(activeCotisation.dateFin, formatter)
+            val now = LocalDate.now()
 
-            val totalDays = java.time.temporal.ChronoUnit.DAYS.between(start, end).toFloat()
-            val elapsedDays = java.time.temporal.ChronoUnit.DAYS.between(start, now).toFloat()
-            val remaining = java.time.temporal.ChronoUnit.DAYS.between(now, end)
+            val totalDays = ChronoUnit.DAYS.between(start, end).toFloat()
+            val elapsedDays = ChronoUnit.DAYS.between(start, now).toFloat()
+            val remaining = ChronoUnit.DAYS.between(now, end)
 
             (elapsedDays / totalDays).coerceIn(0f, 1f) to remaining
         } catch (e: Exception) {
@@ -989,6 +995,11 @@ private fun BeneficiaryCard(
     sessionManager: SessionManager,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val token by sessionManager.tokenFlow.collectAsState(initial = null)
+
+    val imageUrl = ApiConfig.getImageUrl(personne.photo)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = SurfaceColor),
@@ -1000,13 +1011,29 @@ private fun BeneficiaryCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ServerImage(
-                filename = personne.photo,
-                sessionManager = sessionManager,
+//            ServerImage(
+//                filename = personne.photo,
+//                sessionManager = sessionManager,
+//                modifier = Modifier
+//                    .size(50.dp)
+//                    .clip(RoundedCornerShape(12.dp)),
+//                contentScale = ContentScale.Crop
+//            )
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .apply {
+                        token?.let {
+                            addHeader("Authorization", "Bearer $it")
+                        }
+                    }
+
+                    .crossfade(true)
+                    .build(),
+                contentDescription = personne.nom,
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+                    .size(80.dp)
+                    .clip(CircleShape),
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -1129,7 +1156,7 @@ private fun PersonneDetailsModal(
     val imageUrl = ApiConfig.getImageUrl(personne.photo)
     Dialog(
         onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Card(
             modifier = Modifier
@@ -1182,7 +1209,7 @@ private fun PersonneDetailsModal(
                             .build(),
                         contentDescription = personne.nom,
                         modifier = Modifier
-                            .size(80.dp)
+                            .size(50.dp)
                             .clip(CircleShape),
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1269,7 +1296,7 @@ private fun PersonneDetailsModal(
 
 @Composable
 private fun InfoItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String
 ) {

@@ -1,6 +1,7 @@
 package com.example.sencsu.navigation
 
 import AddAdherentScreen
+import ListCardDisponible
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
@@ -87,6 +88,14 @@ fun AppNavigation(
 
         composable("liste_adherents") {
             ListeAdherentScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAdherentClick = { adherentId ->
+                    navController.navigate("adherent_details/$adherentId")},
+                sessionManager = sessionManager
+            )
+        }
+        composable("liste_cartes") {
+            ListCardDisponible(
                 onNavigateBack = { navController.popBackStack() },
                 onAdherentClick = { adherentId ->
                     navController.navigate("adherent_details/$adherentId")},

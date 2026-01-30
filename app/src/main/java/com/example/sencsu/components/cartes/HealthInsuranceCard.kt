@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -6,6 +5,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -77,17 +77,35 @@ fun HealthInsuranceCard(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(8.dp)
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF2D7F4F), // Vert
-                            Color(0xFFFCE181), // Jaune
-                            Color(0xFFC41E3A)  // Rouge
+                .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
+        ) {
+
+            // Bande tricolore
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF2D7F4F), // Vert
+                                Color(0xFFFCE181), // Jaune
+                                Color(0xFFC41E3A)  // Rouge
+                            )
                         )
                     )
-                )
-                .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
-        )
+            )
+
+            // Étoile verte au centre
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = "Étoile Sénégal",
+                tint = Color(0xFF2D7F4F),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(6.dp)
+            )
+        }
+
 
         // Contenu principal
         Row(
@@ -117,39 +135,7 @@ fun HealthInsuranceCard(
                 )
 
                 // Code-barres
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(90.dp)
-                            .height(25.dp)
-                            .background(Color.White, RoundedCornerShape(3.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "║ ║ ║║║║ ║",
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black,
-                                fontFamily = FontFamily.Monospace
-                            ),
-                            letterSpacing = 1.2.sp
-                        )
-                    }
-                    Text(
-                        text = data.codeBarres,
-                        style = TextStyle(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.Black,
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                BarcodeView(code = data.codeBarres)
             }
 
             // Séparateur vertical
@@ -255,11 +241,6 @@ fun HealthInsuranceCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-//                    Box(
-//                        modifier = Modifier
-//                            .size(26.dp)
-//                            .background(Color(0xFFE8E8E8), RoundedCornerShape(3.dp))
-//                    )
                     AsyncImage(
                         model = "https://sencsu.sn/assets/logo.png", // Remplace par un lien direct
                         contentDescription = "Logo SEN-CSU",
@@ -371,18 +352,32 @@ private fun InfoField(label: String, value: String?) {
 @Composable
 private fun FlagSenegal(modifier: Modifier = Modifier) {
     Row(modifier = modifier) {
+
+        // Vert
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
                 .background(Color(0xFF2D7F4F))
         )
+
+        // Jaune + étoile
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(Color(0xFFFCE181))
-        )
+                .background(Color(0xFFFCE181)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = "Étoile Sénégal",
+                tint = Color(0xFF2D7F4F),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // Rouge
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -392,7 +387,55 @@ private fun FlagSenegal(modifier: Modifier = Modifier) {
     }
 }
 
+
 // Extension pour ajouter margin facilement
 private fun Modifier.marginTop(value: Dp): Modifier {
     return this.padding(top = value)
+}
+@Composable
+fun BarcodeView(code: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        // Zone code-barres
+        Column(
+            modifier = Modifier
+                .width(120.dp)
+                .height(40.dp)
+                .background(Color.White, RoundedCornerShape(4.dp))
+                .padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+
+            code.forEach { char ->
+
+                val barHeight = when (char) {
+                    in '0'..'3' -> 2.dp
+                    in '4'..'6' -> 3.dp
+                    else -> 4.dp
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(barHeight)
+                        .background(Color.Black)
+                )
+
+                Spacer(modifier = Modifier.height(1.dp))
+            }
+        }
+
+        // Valeur texte
+        Text(
+            text = code,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
 }
